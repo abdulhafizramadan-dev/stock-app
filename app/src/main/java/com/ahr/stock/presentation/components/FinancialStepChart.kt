@@ -40,7 +40,6 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 
 private val ChartHeight = 200.dp
-private val GutterWidth = 40.dp
 private val LabelPadding = 20.dp
 private const val DashOn = 10f
 private const val DashOff = 10f
@@ -74,6 +73,26 @@ fun <T> FinancialStepChart(
     val hapticFeedback = LocalHapticFeedback.current
     var crosshairX by remember { mutableStateOf<Float?>(null) }
 
+    val dynamicGutterWidth = remember(dataPoints, labelFontSize, showYAxisLabels) {
+        if (!showYAxisLabels) return@remember 0f
+        val minY = dataPoints.minOf { it.y }
+        val maxY = dataPoints.maxOf { it.y }
+        val yRange = if (maxY == minY) 1.0 else maxY - minY
+        val rawStep = yRange / 4.0
+        val magnitude = 10.0.pow(floor(log10(abs(rawStep))))
+        val step = if (rawStep > 0) ceil(rawStep / magnitude) * magnitude else 1.0
+        val labelValues = mutableSetOf<Double>()
+        var v = floor(minY / step) * step
+        while (v <= maxY + step * 0.5) {
+            if (v >= minY - step * 0.1 && v <= maxY + step * 0.1) labelValues.add(v)
+            v += step
+        }
+        val maxWidth = labelValues.maxOfOrNull { value ->
+            textMeasurer.measure(formatChartLabel(value), labelStyle).size.width
+        } ?: 0
+        maxWidth.toFloat()
+    }
+
     val dragModifier = if (dragEnabled) {
         Modifier.pointerInput(dataPoints) {
             awaitEachGesture {
@@ -104,7 +123,7 @@ fun <T> FinancialStepChart(
             .height(ChartHeight)
             .then(dragModifier),
     ) {
-        val gutterPx = if (showYAxisLabels) GutterWidth.toPx() else 0f
+        val gutterPx = if (showYAxisLabels) dynamicGutterWidth + 4.dp.toPx() else 0f
         val strokePx = strokeWidth.toPx()
         val labelPaddingPx = LabelPadding.toPx()
         val chartWidth = size.width - gutterPx
@@ -365,11 +384,13 @@ private fun DrawScope.drawYAxisLabels(
     }
 
     val labelX = chartWidth + 4.dp.toPx()
+
     for (value in labelValues) {
         val cy = yToCanvas(value)
         if (cy < 0f || cy > size.height) continue
         val text = formatChartLabel(value)
         val measured = textMeasurer.measure(text, labelStyle)
+
         val textY = (cy - measured.size.height / 2f).coerceIn(0f, size.height - measured.size.height)
         drawText(
             textMeasurer = textMeasurer,
