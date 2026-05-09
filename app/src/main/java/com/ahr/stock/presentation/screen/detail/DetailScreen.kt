@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -47,6 +46,7 @@ import com.ahr.stock.presentation.components.FinancialStepChart
 import com.ahr.stock.presentation.components.NewsCard
 import com.ahr.stock.presentation.components.PeriodSelector
 import com.ahr.stock.presentation.components.PriceChip
+import com.ahr.stock.presentation.components.SectionCard
 import org.koin.androidx.compose.koinViewModel
 
 private val BullishGreen = Color(0xFF00C853)
@@ -128,45 +128,63 @@ private fun DetailContent(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         state.detail?.let { detail ->
-            item { PriceHeaderSection(detail = detail, displayPoint = displayPoint, baselineClose = baselineClose) }
-        }
+            item {
+                SectionCard(modifier = Modifier.padding(horizontal = 16.dp).padding(top = 12.dp)) {
+                    PriceHeaderSection(
+                        detail = detail,
+                        displayPoint = displayPoint,
+                        baselineClose = baselineClose,
+                    )
+                    ChartSection(state = state, onIntent = onIntent)
+                    PeriodSelector(
+                        selectedPeriod = state.selectedPeriod,
+                        onPeriodSelected = { onIntent(DetailIntent.ChangePeriod(it)) },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
+            }
 
-        item {
-            ChartSection(state = state, onIntent = onIntent)
-        }
-
-        item {
-            PeriodSelector(
-                selectedPeriod = state.selectedPeriod,
-                onPeriodSelected = { onIntent(DetailIntent.ChangePeriod(it)) },
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
-        }
-
-        state.detail?.let { detail ->
-            item { StockMetaSection(detail = detail) }
+            item {
+                SectionCard(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    StockMetaSection(detail = detail)
+                }
+            }
         }
 
         if (state.news.isNotEmpty()) {
             item {
-                Text(
-                    text = "News",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                )
-            }
-            items(state.news, key = { it.id }) { news ->
-                NewsCard(
-                    newsItem = news,
-                    onClick = { onIntent(DetailIntent.OpenNewsArticle(it)) },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                )
+                SectionCard(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    NewsSectionHeader()
+                    state.news.forEachIndexed { index, news ->
+                        NewsCard(
+                            newsItem = news,
+                            onClick = { onIntent(DetailIntent.OpenNewsArticle(it)) },
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        )
+                        if (index < state.news.lastIndex) {
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
             }
         }
     }
+}
+
+@Composable
+private fun NewsSectionHeader() {
+    Text(
+        text = "NEWS",
+        fontWeight = FontWeight.Bold,
+        fontSize = 14.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        letterSpacing = 1.sp,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+    )
 }
 
 @Composable
@@ -236,10 +254,15 @@ private fun ChartSection(
 
 @Composable
 private fun StockMetaSection(detail: StockDetail) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-        Text(text = "Details", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        Spacer(modifier = Modifier.height(8.dp))
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Text(
+            text = "DETAILS",
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            letterSpacing = 1.sp,
+        )
+        Spacer(modifier = Modifier.height(12.dp))
         MetaRow(label = "Market Cap", value = formatLargeNumber(detail.marketCap))
         MetaRow(label = "Volume", value = formatLargeNumber(detail.volume))
         MetaRow(label = "52W High", value = "%.2f".format(detail.week52High))
@@ -297,4 +320,3 @@ private fun formatLargeNumber(value: Long): String = when {
     value >= 1_000 -> "${"%.2f".format(value / 1_000.0)}K"
     else -> value.toString()
 }
-

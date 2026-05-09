@@ -39,7 +39,7 @@ import kotlin.math.log10
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
-private val ChartHeight = 200.dp
+private val ChartHeight = 180.dp
 private val LabelPadding = 20.dp
 private const val DashOn = 10f
 private const val DashOff = 10f

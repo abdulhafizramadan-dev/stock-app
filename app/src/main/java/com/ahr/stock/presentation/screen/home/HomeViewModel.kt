@@ -49,10 +49,10 @@ class HomeViewModel(
             }
 
             val gainersDeferred = async {
-                getGainers(GetGainersUseCase.Params(limit = 10))
+                getGainers(GetGainersUseCase.Params(limit = 5))
             }
             val losersDeferred = async {
-                getLosers(GetLosersUseCase.Params(limit = 10))
+                getLosers(GetLosersUseCase.Params(limit = 5))
             }
             val indexDeferred = async {
                 getIndexHistory(

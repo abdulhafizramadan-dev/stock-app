@@ -12,12 +12,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
@@ -32,10 +33,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahr.stock.presentation.components.FinancialStepChart
+import com.ahr.stock.presentation.components.SectionCard
 import com.ahr.stock.presentation.components.StockRow
 import org.koin.androidx.compose.koinViewModel
 
@@ -100,36 +104,60 @@ private fun MarketContent(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            IndexChartSection(state = state, onIntent = onIntent)
-        }
-
-        item {
-            TabRow(selectedTabIndex = tabs.indexOf(state.selectedTab)) {
-                tabs.forEach { tab ->
-                    Tab(
-                        selected = state.selectedTab == tab,
-                        onClick = { onIntent(HomeIntent.SelectTab(tab)) },
-                        text = {
-                            Text(
-                                text = when (tab) {
-                                    MarketTab.GAINERS -> "Top Gainers"
-                                    MarketTab.LOSERS -> "Top Losers"
-                                },
-                            )
-                        },
-                    )
-                }
+            SectionCard(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 12.dp),
+            ) {
+                IndexChartSection(state = state, onIntent = onIntent)
             }
         }
 
-        items(stocks, key = { it.ticker }) { stock ->
-            StockRow(
-                stock = stock,
-                onClick = { onIntent(HomeIntent.SelectStock(it)) },
-            )
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+        item {
+            SectionCard(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(
+                    text = "TOP MOVERS",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                )
+                ScrollableTabRow(
+                    selectedTabIndex = tabs.indexOf(state.selectedTab),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    edgePadding = 0.dp,
+                    divider = {},
+                ) {
+                    tabs.forEach { tab ->
+                        Tab(
+                            selected = state.selectedTab == tab,
+                            onClick = { onIntent(HomeIntent.SelectTab(tab)) },
+                            text = {
+                                Text(
+                                    text = when (tab) {
+                                        MarketTab.GAINERS -> "Gainers"
+                                        MarketTab.LOSERS -> "Losers"
+                                    },
+                                )
+                            },
+                        )
+                    }
+                }
+
+                stocks.forEachIndexed { index, stock ->
+                    StockRow(
+                        stock = stock,
+                        onClick = { onIntent(HomeIntent.SelectStock(it)) },
+                    )
+                    if (index < stocks.lastIndex) {
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    }
+                }
+            }
         }
     }
 }
@@ -148,24 +176,24 @@ private fun IndexChartSection(
         ((displayPoint.close - firstClose) / firstClose) * 100.0 else 0.0
 
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 text = "IHSG",
                 fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
+                fontSize = 24.sp,
             )
 
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(6.dp))
 
             if (displayPoint != null) {
                 val sign = if (computedChangePercent >= 0) "+" else ""
                 Text(
                     text = "${"%.2f".format(displayPoint.close)}  $sign${"%.2f".format(computedChangePercent)}%",
-                    fontSize = 12.sp,
+                    fontSize = 14.sp,
                     color = if (computedChangePercent >= 0)
-                        androidx.compose.ui.graphics.Color(0xFF00C853)
+                        Color(0xFF00C853)
                     else
-                        androidx.compose.ui.graphics.Color(0xFFE53935),
+                        Color(0xFFE53935),
                 )
             }
         }
@@ -209,4 +237,3 @@ private fun ErrorContent(message: String, onRetry: () -> Unit) {
         }
     }
 }
-
