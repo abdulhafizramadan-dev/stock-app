@@ -19,7 +19,9 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -29,6 +31,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ahr.stock.utils.formatCrosshairLabel
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -68,21 +71,25 @@ fun <T> FinancialStepChart(
 
     val textMeasurer = rememberTextMeasurer()
     val labelStyle = remember(labelFontSize) { TextStyle(fontSize = labelFontSize) }
+    val hapticFeedback = LocalHapticFeedback.current
     var crosshairX by remember { mutableStateOf<Float?>(null) }
 
     val dragModifier = if (dragEnabled) {
         Modifier.pointerInput(dataPoints) {
             awaitEachGesture {
                 val down = awaitFirstDown()
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
                 crosshairX = down.position.x
                 do {
                     val event = awaitPointerEvent()
                     val change = event.changes.firstOrNull() ?: break
                     if (change.pressed) {
                         crosshairX = change.position.x
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
                         change.consume()
                     }
                 } while (event.changes.any { it.pressed })
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                 crosshairX = null
                 onDragIndexChange?.invoke(null)
             }
@@ -312,14 +319,15 @@ private fun DrawScope.drawCrosshair(
     labelStyle: TextStyle,
     gridColor: Color,
 ) {
-    val measured = textMeasurer.measure(xLabel, labelStyle)
+    val formattedLabel = formatCrosshairLabel(xLabel)
+    val measured = textMeasurer.measure(formattedLabel, labelStyle)
     val labelX = (snapX - measured.size.width / 2f).coerceIn(0f, chartWidth - measured.size.width)
     val labelHeight = measured.size.height.toFloat()
     val lineGap = 4.dp.toPx()
 
     drawText(
         textMeasurer = textMeasurer,
-        text = xLabel,
+        text = formattedLabel,
         style = labelStyle.copy(color = gridColor),
         topLeft = Offset(labelX, 0f),
     )
@@ -382,6 +390,7 @@ private fun formatChartLabel(value: Double): String {
     }
 }
 
+
 @Preview(showBackground = true)
 @Composable
 private fun FinancialStepChartPreview() {
@@ -400,4 +409,3 @@ private fun FinancialStepChartPreview() {
         baselineValue = sampleData.first().close,
     )
 }
-

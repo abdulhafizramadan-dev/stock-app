@@ -1,5 +1,6 @@
 package com.ahr.stock.data.remote.dto
 
+import com.ahr.stock.utils.convertUtcToIndonesiaTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -15,7 +16,11 @@ data class OhlcvDto(
     @SerialName("Dividends") val dividends: Double? = null,
     @SerialName("Stock Splits") val stockSplits: Double? = null,
 ) {
-    val resolvedDate: String get() = date ?: datetime ?: ""
+    val resolvedDate: String
+        get() {
+            val rawDate = date ?: datetime ?: return ""
+            return convertUtcToIndonesiaTime(rawDate)
+        }
 }
 
 @Serializable
