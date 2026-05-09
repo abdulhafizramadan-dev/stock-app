@@ -12,6 +12,8 @@ data class OhlcvDto(
     @SerialName("Low") val low: Double,
     @SerialName("Close") val close: Double,
     @SerialName("Volume") val volume: Long,
+    @SerialName("Dividends") val dividends: Double? = null,
+    @SerialName("Stock Splits") val stockSplits: Double? = null,
 ) {
     val resolvedDate: String get() = date ?: datetime ?: ""
 }

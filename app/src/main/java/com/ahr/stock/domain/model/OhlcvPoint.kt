@@ -7,5 +7,7 @@ data class OhlcvPoint(
     val low: Double,
     val close: Double,
     val volume: Long,
+    val dividends: Double? = null,
+    val stockSplits: Double? = null,
 )
 

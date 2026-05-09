@@ -448,24 +448,20 @@ GET /index/^JKSE/history?period=1d&interval=15m&limit=50
   "interval": "15m",
   "data": [
     {
-      "datetime": "2026-05-06 09:00:00",
-      "open": 7103.26,
-      "high": 7109.0,
-      "low": 7081.52,
-      "close": 7087.51,
-      "volume": 0,
-      "change": -15.75,
-      "changePercent": -0.22
+      "Datetime": "2026-05-08T02:00:00.000Z",
+      "Open": 7182.9609375,
+      "High": 7186.830078125,
+      "Low": 7151.1840820312,
+      "Close": 7155.4501953125,
+      "Volume": 0
     },
     {
-      "datetime": "2026-05-06 09:15:00",
-      "open": 7087.51,
-      "high": 7095.0,
-      "low": 7080.0,
-      "close": 7090.0,
-      "volume": 0,
-      "change": 2.49,
-      "changePercent": 0.04
+      "Datetime": "2026-05-08T02:15:00.000Z",
+      "Open": 7155.4501953125,
+      "High": 7165.5,
+      "Low": 7150.0,
+      "Close": 7160.25,
+      "Volume": 0
     }
   ],
   "count": 50,
@@ -492,7 +488,7 @@ GET /index/^JKSE/history?period=1d&interval=15m&limit=50
 
 **Usage Notes:**
 - Intraday data (1m, 5m, 15m, 1h) requires period >= 2d for most indices
-- ^JKSE doesn't support period=1d with intraday intervals  
+- ^JKSE doesn't support period=1d with intraday intervals
 - Use period=2d or higher for intraday data
 - Daily/weekly/monthly intervals work with any period
 

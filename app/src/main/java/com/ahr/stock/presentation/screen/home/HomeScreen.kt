@@ -143,6 +143,10 @@ private fun IndexChartSection(
         ?.let { state.indexPoints.getOrNull(it) }
         ?: state.indexPoints.lastOrNull()
 
+    val firstClose = state.indexPoints.firstOrNull()?.close ?: 0.0
+    val computedChangePercent = if (firstClose != 0.0 && displayPoint != null)
+        ((displayPoint.close - firstClose) / firstClose) * 100.0 else 0.0
+
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -154,11 +158,11 @@ private fun IndexChartSection(
             Spacer(modifier = Modifier.width(4.dp))
 
             if (displayPoint != null) {
-                val sign = if (displayPoint.changePercent >= 0) "+" else ""
+                val sign = if (computedChangePercent >= 0) "+" else ""
                 Text(
-                    text = "${"%.2f".format(displayPoint.close)}  $sign${"%.2f".format(displayPoint.changePercent)}%",
+                    text = "${"%.2f".format(displayPoint.close)}  $sign${"%.2f".format(computedChangePercent)}%",
                     fontSize = 12.sp,
-                    color = if (displayPoint.changePercent >= 0)
+                    color = if (computedChangePercent >= 0)
                         androidx.compose.ui.graphics.Color(0xFF00C853)
                     else
                         androidx.compose.ui.graphics.Color(0xFFE53935),

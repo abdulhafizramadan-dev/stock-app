@@ -7,7 +7,5 @@ data class IndexPoint(
     val low: Double,
     val close: Double,
     val volume: Long,
-    val change: Double,
-    val changePercent: Double,
 )
 

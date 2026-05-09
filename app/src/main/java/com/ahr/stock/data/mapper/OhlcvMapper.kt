@@ -11,6 +11,8 @@ class OhlcvMapper : Mapper<OhlcvDto, OhlcvPoint> {
         low = from.low,
         close = from.close,
         volume = from.volume,
+        dividends = from.dividends,
+        stockSplits = from.stockSplits,
     )
 }
 
