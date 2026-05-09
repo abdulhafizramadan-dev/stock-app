@@ -38,3 +38,14 @@ data class NewsResponseDto(
     val cached: Boolean,
 )
 
+@Serializable
+data class HighlightedNewsResponseDto(
+    val news: List<NewsItemDto>,
+    val count: Int,
+    @SerialName("next_min_id") val nextMinId: Long? = null,
+    @SerialName("has_next") val hasNext: Boolean = false,
+    val source: String,
+    val timestamp: String,
+    val cached: Boolean,
+)
+

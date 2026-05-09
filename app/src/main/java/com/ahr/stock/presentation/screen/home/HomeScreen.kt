@@ -1,5 +1,7 @@
 package com.ahr.stock.presentation.screen.home
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -22,7 +23,6 @@ import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -33,12 +33,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahr.stock.presentation.components.FinancialStepChart
+import com.ahr.stock.presentation.components.NewsCard
 import com.ahr.stock.presentation.components.SectionCard
 import com.ahr.stock.presentation.components.StockRow
 import org.koin.androidx.compose.koinViewModel
@@ -52,11 +53,16 @@ fun HomeScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 is HomeEffect.NavigateToDetail -> onNavigateToDetail(effect.ticker)
+                is HomeEffect.OpenUrl -> {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(effect.url))
+                    context.startActivity(intent)
+                }
                 is HomeEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
             }
         }
@@ -156,6 +162,29 @@ private fun MarketContent(
                     if (index < stocks.lastIndex) {
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                     }
+                }
+            }
+        }
+
+        if (state.news.isNotEmpty()) {
+            item {
+                SectionCard(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Text(
+                        text = "MARKET NEWS",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    )
+                    state.news.forEach {news ->
+                        NewsCard(
+                            newsItem = news,
+                            onClick = { onIntent(HomeIntent.OpenNewsArticle(it)) },
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         }

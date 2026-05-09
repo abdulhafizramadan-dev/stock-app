@@ -1,7 +1,7 @@
 package com.ahr.stock.presentation.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,7 +20,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -28,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.ahr.stock.domain.model.NewsItem
+import com.ahr.stock.utils.formatPublishedAt
 
 @Composable
 fun NewsCard(
@@ -49,10 +49,10 @@ fun NewsCard(
                 AsyncImage(
                     model = url,
                     contentDescription = null,
-                    contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(72.dp)
-                        .clip(RoundedCornerShape(6.dp)),
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer),
                 )
                 Spacer(modifier = Modifier.width(12.dp))
             }
@@ -84,7 +84,7 @@ fun NewsCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = newsItem.publishedAt,
+                    text = formatPublishedAt(newsItem.publishedAt),
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

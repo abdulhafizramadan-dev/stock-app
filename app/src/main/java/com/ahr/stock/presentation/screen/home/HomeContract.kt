@@ -1,7 +1,7 @@
 package com.ahr.stock.presentation.screen.home
 
-import com.ahr.stock.domain.model.ChartPeriod
 import com.ahr.stock.domain.model.IndexPoint
+import com.ahr.stock.domain.model.NewsItem
 import com.ahr.stock.domain.model.Stock
 
 enum class MarketTab { GAINERS, LOSERS }
@@ -12,6 +12,7 @@ sealed interface HomeIntent {
     data class SelectStock(val ticker: String) : HomeIntent
     data class SelectTab(val tab: MarketTab) : HomeIntent
     data class OnChartDrag(val index: Int?) : HomeIntent
+    data class OpenNewsArticle(val url: String) : HomeIntent
 }
 
 data class HomeState(
@@ -20,6 +21,7 @@ data class HomeState(
     val gainers: List<Stock> = emptyList(),
     val losers: List<Stock> = emptyList(),
     val indexPoints: List<IndexPoint> = emptyList(),
+    val news: List<NewsItem> = emptyList(),
     val selectedTab: MarketTab = MarketTab.GAINERS,
     val draggedIndex: Int? = null,
     val error: String? = null,
@@ -27,6 +29,6 @@ data class HomeState(
 
 sealed interface HomeEffect {
     data class NavigateToDetail(val ticker: String) : HomeEffect
+    data class OpenUrl(val url: String) : HomeEffect
     data class ShowSnackbar(val message: String) : HomeEffect
 }
-

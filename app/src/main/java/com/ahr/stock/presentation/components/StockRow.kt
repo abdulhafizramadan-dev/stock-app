@@ -46,7 +46,7 @@ fun StockRow(
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = "${"%.2f".format(stock.price)}",
+                text = "${"%.0f".format(stock.price)}",
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
             )

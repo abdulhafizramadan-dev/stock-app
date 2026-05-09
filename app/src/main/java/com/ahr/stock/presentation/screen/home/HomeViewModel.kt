@@ -3,6 +3,7 @@ package com.ahr.stock.presentation.screen.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahr.stock.domain.usecase.index.GetIndexHistoryUseCase
+import com.ahr.stock.domain.usecase.news.GetHighlightedNewsUseCase
 import com.ahr.stock.domain.usecase.stock.GetGainersUseCase
 import com.ahr.stock.domain.usecase.stock.GetLosersUseCase
 import kotlinx.coroutines.async
@@ -19,6 +20,7 @@ class HomeViewModel(
     private val getGainers: GetGainersUseCase,
     private val getLosers: GetLosersUseCase,
     private val getIndexHistory: GetIndexHistoryUseCase,
+    private val getHighlightedNews: GetHighlightedNewsUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -38,6 +40,7 @@ class HomeViewModel(
             is HomeIntent.SelectStock -> navigateToDetail(intent.ticker)
             is HomeIntent.SelectTab -> _state.update { it.copy(selectedTab = intent.tab) }
             is HomeIntent.OnChartDrag -> _state.update { it.copy(draggedIndex = intent.index) }
+            is HomeIntent.OpenNewsArticle -> openUrl(intent.url)
         }
     }
 
@@ -48,25 +51,19 @@ class HomeViewModel(
                 else it.copy(isLoading = true, error = null)
             }
 
-            val gainersDeferred = async {
-                getGainers(GetGainersUseCase.Params(limit = 5))
-            }
-            val losersDeferred = async {
-                getLosers(GetLosersUseCase.Params(limit = 5))
-            }
+            val gainersDeferred = async { getGainers(GetGainersUseCase.Params(limit = 5)) }
+            val losersDeferred = async { getLosers(GetLosersUseCase.Params(limit = 5)) }
             val indexDeferred = async {
                 getIndexHistory(
-                    GetIndexHistoryUseCase.Params(
-                        symbol = "^JKSE",
-                        period = "1d",
-                        interval = "1m",
-                    )
+                    GetIndexHistoryUseCase.Params(symbol = "^JKSE", period = "1d", interval = "1m")
                 )
             }
+            val newsDeferred = async { getHighlightedNews(GetHighlightedNewsUseCase.Params(count = 5)) }
 
             val gainersResult = gainersDeferred.await()
             val losersResult = losersDeferred.await()
             val indexResult = indexDeferred.await()
+            val newsResult = newsDeferred.await()
 
             val error = gainersResult.exceptionOrNull()
                 ?: losersResult.exceptionOrNull()
@@ -91,6 +88,7 @@ class HomeViewModel(
                     gainers = gainersResult.getOrDefault(emptyList()),
                     losers = losersResult.getOrDefault(emptyList()),
                     indexPoints = indexResult.getOrDefault(emptyList()),
+                    news = newsResult.getOrDefault(emptyList()),
                     error = null,
                 )
             }
@@ -102,5 +100,10 @@ class HomeViewModel(
             _effect.emit(HomeEffect.NavigateToDetail(ticker))
         }
     }
-}
 
+    private fun openUrl(url: String) {
+        viewModelScope.launch {
+            _effect.emit(HomeEffect.OpenUrl(url))
+        }
+    }
+}

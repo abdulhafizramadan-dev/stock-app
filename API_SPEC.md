@@ -18,6 +18,7 @@
 | `/stocks/{ticker}` | GET | Stock details | 5 min |
 | `/stocks/{ticker}/history` | GET | Price history (OHLCV) | 5 min |
 | `/stocks/{ticker}/news` | GET | Stock news feed | 30 min |
+| `/news/highlighted` | GET | Market/highlighted news | 30 min |
 | `/index/{symbol}/history` | GET | Market index data | 1 hour |
 
 ---
@@ -395,7 +396,105 @@ GET /stocks/BBCA.JK/news?count=10&tab=all
 
 ---
 
-## 7. Market Index History
+## 7. Highlighted Market News
+
+**Purpose:** Get general market/highlighted news using Finnhub API
+
+**Endpoint:** `GET /news/highlighted`
+
+**Query Parameters:**
+
+| Name | Type | Default | Options | Description |
+|------|------|---------|---------|-------------|
+| `count` | int | 10 | 1-50 | Number of news items to fetch per request |
+| `min_id` | int | 0 | Any positive int | News ID for pagination (default fetches latest) |
+
+**Example Requests:**
+```bash
+# Get first page (latest 10)
+GET /news/highlighted?count=10
+
+# Get next page using min_id from previous response
+GET /news/highlighted?count=10&min_id=1234567890
+```
+
+**Response (First Page):**
+```json
+{
+  "news": [
+    {
+      "id": "xyz789",
+      "title": "Federal Reserve Hints at Rate Cut",
+      "summary": "Central bank signals potential monetary easing ahead...",
+      "datePublished": "2026-05-09T15:30:00Z",
+      "provider": {
+        "name": "Reuters",
+        "url": "https://reuters.com"
+      },
+      "articleUrl": "https://bloomberg.com/news/articles/fed-rate-cut",
+      "thumbnail": "https://images.unsplash.com/photo-fed",
+      "thumbnails": {
+        "original": "https://images.unsplash.com/photo-fed"
+      },
+      "isPremium": false,
+      "isEditorsPick": true
+    },
+    {
+      "id": "xyz788",
+      "title": "Tech Stock Rally Continues",
+      "summary": "Major tech indices hit new record highs...",
+      "datePublished": "2026-05-09T14:15:00Z",
+      "provider": {
+        "name": "Bloomberg",
+        "url": "https://bloomberg.com"
+      },
+      "articleUrl": "https://bloomberg.com/news/articles/tech-rally",
+      "thumbnail": "https://images.unsplash.com/photo-tech",
+      "thumbnails": {
+        "original": "https://images.unsplash.com/photo-tech"
+      },
+      "isPremium": false,
+      "isEditorsPick": false
+    }
+  ],
+  "count": 2,
+  "next_min_id": 1234567890,
+  "has_next": true,
+  "source": "finnhub",
+  "timestamp": "2026-05-09T16:00:00.123456",
+  "cached": false
+}
+```
+
+**Empty State Response:**
+```json
+{
+  "news": [],
+  "count": 0,
+  "source": "finnhub",
+  "message": "No highlighted news available",
+  "timestamp": "2026-05-09T16:00:00.123456",
+  "cached": false
+}
+```
+
+**Pagination Pattern:**
+1. First request: `GET /news/highlighted?count=10`
+2. Response includes `next_min_id` (e.g., 1234567890) and `has_next: true`
+3. Next request: `GET /news/highlighted?count=10&min_id=1234567890`
+4. Continue until `has_next: false` indicates no more news
+
+**Important Notes:**
+- Server caches news for 30 minutes
+- Uses Finnhub general news API for comprehensive market coverage
+- `next_min_id` from response should be used as `min_id` in next request
+- `has_next: false` indicates you've reached the end of available news
+- Same news structure as stock-specific news feed
+- Source is always "finnhub" for this endpoint
+
+---
+
+## 8. Market Index History
 
 **Purpose:** Get market index data for charts (e.g., IHSG/^JKSE)
 
@@ -548,6 +647,7 @@ GET /index/^JKSE/history?period=1d&interval=15m&limit=50
 | Stock Detail | 5 min | `stock_{ticker}` |
 | Stock History | 5 min | `history_{ticker}_{period}_{interval}_{limit}` |
 | Stock News | 30 min | `news_{ticker}_{count}_{tab}` |
+| Highlighted News | 30 min | `news_highlighted_{count}_{min_id}` |
 | Index History | 1 hour | `index_{symbol}_{period}_{interval}_{limit}` |
 
 ### Cache Headers
@@ -578,6 +678,12 @@ curl "http://localhost:8000/stocks/BBCA.JK/history?period=1mo&interval=1d"
 
 # Stock news (5 items)
 curl "http://localhost:8000/stocks/BBCA.JK/news?count=5"
+
+# Highlighted market news (first page, 10 items)
+curl "http://localhost:8000/news/highlighted?count=10"
+
+# Highlighted market news (next page using min_id)
+curl "http://localhost:8000/news/highlighted?count=10&min_id=1234567890"
 
 # Index history (1 day, 15-minute intervals)
 curl "http://localhost:8000/index/^JKSE/history?period=2d&interval=15m&limit=20"
@@ -655,6 +761,14 @@ Parse and display side-by-side comparison.
 
 ## Changelog
 
+### v1.1 (May 9, 2026)
+- **Breaking Change:** Updated `/news/highlighted` endpoint
+    - Removed `region` parameter (now uses Finnhub general news for all regions)
+    - Added `min_id` parameter for cursor-based pagination
+    - Changed source from index tickers to "finnhub"
+    - Added `next_min_id` and `has_next` fields to response for pagination support
+    - More reliable and comprehensive market news coverage
+
 ### v1.0 (May 6, 2026)
 - Initial API specification
 - 7 endpoints documented
@@ -665,5 +779,5 @@ Parse and display side-by-side comparison.
 
 ---
 
-*API Specification | StockBit Mini App | Last Updated: May 6, 2026*
+*API Specification | StockBit Mini App | Last Updated: May 9, 2026*
 
