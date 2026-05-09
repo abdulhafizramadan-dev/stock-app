@@ -8,6 +8,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.ahr.stock.presentation.screen.detail.DetailScreen
+import com.ahr.stock.presentation.screen.home.HomeScreen
 
 @Composable
 fun NavGraph(
@@ -20,12 +22,22 @@ fun NavGraph(
         modifier = modifier,
     ) {
         composable(route = Screen.Home.route) {
+            HomeScreen(
+                onNavigateToDetail = { ticker ->
+                    navController.navigate(Screen.StockDetail(ticker).createRoute())
+                },
+            )
         }
 
         composable(
             route = Screen.StockDetail("").route,
             arguments = listOf(navArgument("ticker") { type = NavType.StringType }),
-        ) {
+        ) { backStackEntry ->
+            val ticker = backStackEntry.arguments?.getString("ticker") ?: return@composable
+            DetailScreen(
+                ticker = ticker,
+                onBack = { navController.popBackStack() },
+            )
         }
     }
 }

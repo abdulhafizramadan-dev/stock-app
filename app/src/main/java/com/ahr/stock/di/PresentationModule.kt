@@ -1,8 +1,12 @@
 package com.ahr.stock.di
 
+import com.ahr.stock.presentation.screen.detail.DetailViewModel
+import com.ahr.stock.presentation.screen.home.HomeViewModel
+import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val presentationModule = module {
-    // ViewModels will be registered here in Step 6.5
+    viewModel { HomeViewModel(get(), get(), get()) }
+    viewModel { DetailViewModel(get(), get(), get()) }
 }
 

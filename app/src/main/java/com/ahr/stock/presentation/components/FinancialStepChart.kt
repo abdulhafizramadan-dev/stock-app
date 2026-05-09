@@ -58,6 +58,7 @@ fun <T> FinancialStepChart(
     baselineValue: Double? = null,
     labelFontSize: TextUnit = 11.sp,
     showYAxisLabels: Boolean = true,
+    dragEnabled: Boolean = true,
     onDragIndexChange: ((index: Int?) -> Unit)? = null,
 ) {
     if (data.size < 2) return
@@ -69,26 +70,32 @@ fun <T> FinancialStepChart(
     val labelStyle = remember(labelFontSize) { TextStyle(fontSize = labelFontSize) }
     var crosshairX by remember { mutableStateOf<Float?>(null) }
 
+    val dragModifier = if (dragEnabled) {
+        Modifier.pointerInput(dataPoints) {
+            awaitEachGesture {
+                val down = awaitFirstDown()
+                crosshairX = down.position.x
+                do {
+                    val event = awaitPointerEvent()
+                    val change = event.changes.firstOrNull() ?: break
+                    if (change.pressed) {
+                        crosshairX = change.position.x
+                        change.consume()
+                    }
+                } while (event.changes.any { it.pressed })
+                crosshairX = null
+                onDragIndexChange?.invoke(null)
+            }
+        }
+    } else {
+        Modifier
+    }
+
     Canvas(
         modifier = modifier
             .fillMaxWidth()
             .height(ChartHeight)
-            .pointerInput(dataPoints) {
-                awaitEachGesture {
-                    val down = awaitFirstDown()
-                    crosshairX = down.position.x
-                    do {
-                        val event = awaitPointerEvent()
-                        val change = event.changes.firstOrNull() ?: break
-                        if (change.pressed) {
-                            crosshairX = change.position.x
-                            change.consume()
-                        }
-                    } while (event.changes.any { it.pressed })
-                    crosshairX = null
-                    onDragIndexChange?.invoke(null)
-                }
-            },
+            .then(dragModifier),
     ) {
         val gutterPx = if (showYAxisLabels) GutterWidth.toPx() else 0f
         val strokePx = strokeWidth.toPx()
@@ -136,25 +143,27 @@ fun <T> FinancialStepChart(
         val lineColor = if (lastPoint.y >= baseline) bullishColor else bearishColor
 
         crosshairX?.let { rawX ->
-            val clampedX = rawX.coerceIn(0f, chartWidth)
-            val nearestIndex = dataPoints.indices.minBy { abs(xToCanvas(dataPoints[it].x) - clampedX) }
-            val nearestPoint = dataPoints[nearestIndex]
-            val snapX = xToCanvas(nearestPoint.x)
-            val snapY = yToCanvas(nearestPoint.y)
+            if (dragEnabled) {
+                val clampedX = rawX.coerceIn(0f, chartWidth)
+                val nearestIndex = dataPoints.indices.minBy { abs(xToCanvas(dataPoints[it].x) - clampedX) }
+                val nearestPoint = dataPoints[nearestIndex]
+                val snapX = xToCanvas(nearestPoint.x)
+                val snapY = yToCanvas(nearestPoint.y)
 
-            onDragIndexChange?.invoke(nearestIndex)
+                onDragIndexChange?.invoke(nearestIndex)
 
-            drawCrosshair(
-                snapX = snapX,
-                snapY = snapY,
-                chartHeight = size.height,
-                chartWidth = chartWidth,
-                lineColor = lineColor,
-                xLabel = xLabels[nearestIndex],
-                textMeasurer = textMeasurer,
-                labelStyle = labelStyle,
-                gridColor = gridColor,
-            )
+                drawCrosshair(
+                    snapX = snapX,
+                    snapY = snapY,
+                    chartHeight = size.height,
+                    chartWidth = chartWidth,
+                    lineColor = lineColor,
+                    xLabel = xLabels[nearestIndex],
+                    textMeasurer = textMeasurer,
+                    labelStyle = labelStyle,
+                    gridColor = gridColor,
+                )
+            }
         }
 
         if (crosshairX == null) {

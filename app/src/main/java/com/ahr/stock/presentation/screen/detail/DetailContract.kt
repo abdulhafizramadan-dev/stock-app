@@ -19,7 +19,7 @@ data class DetailState(
     val detail: StockDetail? = null,
     val history: List<OhlcvPoint> = emptyList(),
     val news: List<NewsItem> = emptyList(),
-    val selectedPeriod: ChartPeriod = ChartPeriod.ONE_MONTH,
+    val selectedPeriod: ChartPeriod = ChartPeriod.ONE_DAY,
     val draggedIndex: Int? = null,
     val error: String? = null,
 )

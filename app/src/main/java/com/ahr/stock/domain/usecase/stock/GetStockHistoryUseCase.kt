@@ -12,7 +12,7 @@ class GetStockHistoryUseCase(
         val ticker: String,
         val period: String,
         val interval: String,
-        val limit: Int = 30,
+        val limit: Int = Int.MAX_VALUE,
     )
 
     override suspend fun invoke(params: Params): Result<List<OhlcvPoint>> =

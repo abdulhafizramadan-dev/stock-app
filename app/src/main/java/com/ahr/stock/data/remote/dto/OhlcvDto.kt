@@ -5,13 +5,16 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class OhlcvDto(
-    @SerialName("Date") val date: String,
+    @SerialName("Date") val date: String? = null,
+    @SerialName("Datetime") val datetime: String? = null,
     @SerialName("Open") val open: Double,
     @SerialName("High") val high: Double,
     @SerialName("Low") val low: Double,
     @SerialName("Close") val close: Double,
     @SerialName("Volume") val volume: Long,
-)
+) {
+    val resolvedDate: String get() = date ?: datetime ?: ""
+}
 
 @Serializable
 data class OhlcvResponseDto(
