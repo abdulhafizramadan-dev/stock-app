@@ -5,7 +5,7 @@ import com.ahr.stock.domain.model.NewsItem
 import com.ahr.stock.domain.model.SectorSummary
 import com.ahr.stock.domain.model.Stock
 
-enum class MarketTab { GAINERS, LOSERS }
+enum class MarketTab { GAINERS, LOSERS, TOP_VALUES, TOP_VOLUMES }
 
 sealed interface HomeIntent {
     data object LoadMarket : HomeIntent
@@ -21,6 +21,8 @@ data class HomeState(
     val isRefreshing: Boolean = false,
     val gainers: List<Stock> = emptyList(),
     val losers: List<Stock> = emptyList(),
+    val topValues: List<Stock> = emptyList(),
+    val topVolumes: List<Stock> = emptyList(),
     val indexPoints: List<IndexPoint> = emptyList(),
     val indexPreviousClose: Double? = null,
     val news: List<NewsItem> = emptyList(),

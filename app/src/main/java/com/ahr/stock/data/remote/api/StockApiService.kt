@@ -28,6 +28,22 @@ class StockApiService(private val client: HttpClient) {
             }.body()
         }
 
+    suspend fun getTopValues(limit: Int, region: String = "id"): Result<StockListResponseDto> =
+        safeApiCall {
+            client.get("stocks/top-values") {
+                parameter("limit", limit)
+                parameter("region", region)
+            }.body()
+        }
+
+    suspend fun getTopVolumes(limit: Int, region: String = "id"): Result<StockListResponseDto> =
+        safeApiCall {
+            client.get("stocks/top-volumes") {
+                parameter("limit", limit)
+                parameter("region", region)
+            }.body()
+        }
+
     suspend fun getStockDetail(ticker: String): Result<StockDetailResponseDto> =
         safeApiCall {
             client.get("stocks/$ticker").body()

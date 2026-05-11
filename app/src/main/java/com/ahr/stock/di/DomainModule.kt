@@ -6,6 +6,8 @@ import com.ahr.stock.domain.usecase.sector.GetSectorsSummaryUseCase
 import com.ahr.stock.domain.usecase.stock.GetGainersUseCase
 import com.ahr.stock.domain.usecase.stock.GetLosersUseCase
 import com.ahr.stock.domain.usecase.stock.GetStockDetailUseCase
+import com.ahr.stock.domain.usecase.stock.GetTopValuesUseCase
+import com.ahr.stock.domain.usecase.stock.GetTopVolumesUseCase
 import com.ahr.stock.domain.usecase.stock.GetStockHistoryUseCase
 import com.ahr.stock.domain.usecase.stock.GetStockNewsUseCase
 import org.koin.dsl.module
@@ -13,6 +15,8 @@ import org.koin.dsl.module
 val domainModule = module {
     factory { GetGainersUseCase(get()) }
     factory { GetLosersUseCase(get()) }
+    factory { GetTopValuesUseCase(get()) }
+    factory { GetTopVolumesUseCase(get()) }
     factory { GetStockDetailUseCase(get()) }
     factory { GetStockHistoryUseCase(get()) }
     factory { GetStockNewsUseCase(get()) }

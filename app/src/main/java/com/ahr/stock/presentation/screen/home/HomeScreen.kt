@@ -107,7 +107,12 @@ private fun MarketContent(
     onIntent: (HomeIntent) -> Unit,
 ) {
     val tabs = MarketTab.entries
-    val stocks = if (state.selectedTab == MarketTab.GAINERS) state.gainers else state.losers
+    val stocks = when (state.selectedTab) {
+        MarketTab.GAINERS -> state.gainers
+        MarketTab.LOSERS -> state.losers
+        MarketTab.TOP_VALUES -> state.topValues
+        MarketTab.TOP_VOLUMES -> state.topVolumes
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -149,6 +154,8 @@ private fun MarketContent(
                                     text = when (tab) {
                                         MarketTab.GAINERS -> "Gainers"
                                         MarketTab.LOSERS -> "Losers"
+                                        MarketTab.TOP_VALUES -> "Top Values"
+                                        MarketTab.TOP_VOLUMES -> "Top Volumes"
                                     },
                                 )
                             },

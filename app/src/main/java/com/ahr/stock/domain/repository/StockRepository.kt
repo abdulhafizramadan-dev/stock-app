@@ -8,6 +8,8 @@ import com.ahr.stock.domain.model.StockHistory
 interface StockRepository {
     suspend fun getGainers(limit: Int): Result<List<Stock>>
     suspend fun getLosers(limit: Int): Result<List<Stock>>
+    suspend fun getTopValues(limit: Int): Result<List<Stock>>
+    suspend fun getTopVolumes(limit: Int): Result<List<Stock>>
     suspend fun getStockDetail(ticker: String): Result<StockDetail>
     suspend fun getStockHistory(ticker: String, period: String, interval: String, limit: Int): Result<StockHistory>
     suspend fun getStockNews(ticker: String, count: Int): Result<List<NewsItem>>

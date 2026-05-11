@@ -25,6 +25,12 @@ class StockRepositoryImpl(
     override suspend fun getLosers(limit: Int): Result<List<Stock>> =
         apiService.getLosers(limit).map { stockMapper.mapList(it.stocks) }
 
+    override suspend fun getTopValues(limit: Int): Result<List<Stock>> =
+        apiService.getTopValues(limit).map { stockMapper.mapList(it.stocks) }
+
+    override suspend fun getTopVolumes(limit: Int): Result<List<Stock>> =
+        apiService.getTopVolumes(limit).map { stockMapper.mapList(it.stocks) }
+
     override suspend fun getStockDetail(ticker: String): Result<StockDetail> =
         apiService.getStockDetail(ticker).map { stockDetailMapper.map(it) }
 

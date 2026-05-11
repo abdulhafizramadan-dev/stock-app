@@ -7,6 +7,8 @@ import com.ahr.stock.domain.usecase.news.GetHighlightedNewsUseCase
 import com.ahr.stock.domain.usecase.sector.GetSectorsSummaryUseCase
 import com.ahr.stock.domain.usecase.stock.GetGainersUseCase
 import com.ahr.stock.domain.usecase.stock.GetLosersUseCase
+import com.ahr.stock.domain.usecase.stock.GetTopValuesUseCase
+import com.ahr.stock.domain.usecase.stock.GetTopVolumesUseCase
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +22,8 @@ import kotlinx.coroutines.launch
 class HomeViewModel(
     private val getGainers: GetGainersUseCase,
     private val getLosers: GetLosersUseCase,
+    private val getTopValues: GetTopValuesUseCase,
+    private val getTopVolumes: GetTopVolumesUseCase,
     private val getIndexHistory: GetIndexHistoryUseCase,
     private val getHighlightedNews: GetHighlightedNewsUseCase,
     private val getSectorsSummary: GetSectorsSummaryUseCase,
@@ -55,6 +59,8 @@ class HomeViewModel(
 
             val gainersDeferred = async { getGainers(GetGainersUseCase.Params(limit = 5)) }
             val losersDeferred = async { getLosers(GetLosersUseCase.Params(limit = 5)) }
+            val topValuesDeferred = async { getTopValues(GetTopValuesUseCase.Params(limit = 5)) }
+            val topVolumesDeferred = async { getTopVolumes(GetTopVolumesUseCase.Params(limit = 5)) }
             val indexDeferred = async {
                 getIndexHistory(
                     GetIndexHistoryUseCase.Params(symbol = "^JKSE", period = "1d", interval = "1m")
@@ -65,6 +71,8 @@ class HomeViewModel(
 
             val gainersResult = gainersDeferred.await()
             val losersResult = losersDeferred.await()
+            val topValuesResult = topValuesDeferred.await()
+            val topVolumesResult = topVolumesDeferred.await()
             val indexResult = indexDeferred.await()
             val newsResult = newsDeferred.await()
             val sectorsResult = sectorsDeferred.await()
@@ -91,6 +99,8 @@ class HomeViewModel(
                     isRefreshing = false,
                     gainers = gainersResult.getOrDefault(emptyList()),
                     losers = losersResult.getOrDefault(emptyList()),
+                    topValues = topValuesResult.getOrDefault(emptyList()),
+                    topVolumes = topVolumesResult.getOrDefault(emptyList()),
                     indexPoints = indexResult.getOrNull()?.points ?: emptyList(),
                     indexPreviousClose = indexResult.getOrNull()?.previousClose,
                     news = newsResult.getOrDefault(emptyList()),
