@@ -26,6 +26,7 @@ data class OhlcvDto(
 @Serializable
 data class OhlcvResponseDto(
     val ticker: String,
+    @SerialName("previous_close") val previousClose: Double? = null,
     val history: List<OhlcvDto>,
     val count: Int,
     val period: String,

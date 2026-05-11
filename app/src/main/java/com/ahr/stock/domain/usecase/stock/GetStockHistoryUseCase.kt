@@ -1,12 +1,12 @@
 package com.ahr.stock.domain.usecase.stock
 
-import com.ahr.stock.domain.model.OhlcvPoint
+import com.ahr.stock.domain.model.StockHistory
 import com.ahr.stock.domain.repository.StockRepository
 import com.ahr.stock.domain.usecase.UseCase
 
 class GetStockHistoryUseCase(
     private val repository: StockRepository,
-) : UseCase<GetStockHistoryUseCase.Params, Result<List<OhlcvPoint>>> {
+) : UseCase<GetStockHistoryUseCase.Params, Result<StockHistory>> {
 
     data class Params(
         val ticker: String,
@@ -15,7 +15,6 @@ class GetStockHistoryUseCase(
         val limit: Int = Int.MAX_VALUE,
     )
 
-    override suspend fun invoke(params: Params): Result<List<OhlcvPoint>> =
+    override suspend fun invoke(params: Params): Result<StockHistory> =
         repository.getStockHistory(params.ticker, params.period, params.interval, params.limit)
 }
-

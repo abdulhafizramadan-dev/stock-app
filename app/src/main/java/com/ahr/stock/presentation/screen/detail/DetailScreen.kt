@@ -121,7 +121,7 @@ private fun DetailContent(
     state: DetailState,
     onIntent: (DetailIntent) -> Unit,
 ) {
-    val baselineClose = state.history.firstOrNull()?.close
+    val baselineClose = state.previousClose ?: state.history.firstOrNull()?.close
     val displayPoint = state.draggedIndex?.let { state.history.getOrNull(it) }
         ?: state.history.lastOrNull()
 
@@ -243,7 +243,7 @@ private fun ChartSection(
                 data = state.history,
                 xSelector = { it.date },
                 ySelector = { it.close },
-                baselineValue = state.history.firstOrNull()?.close,
+                baselineValue = state.previousClose ?: state.history.firstOrNull()?.close,
                 showYAxisLabels = true,
                 onDragIndexChange = { onIntent(DetailIntent.OnChartDrag(it)) },
                 modifier = Modifier.fillMaxWidth(),

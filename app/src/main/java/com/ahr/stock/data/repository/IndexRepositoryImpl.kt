@@ -2,7 +2,7 @@ package com.ahr.stock.data.repository
 
 import com.ahr.stock.data.mapper.IndexPointMapper
 import com.ahr.stock.data.remote.api.IndexApiService
-import com.ahr.stock.domain.model.IndexPoint
+import com.ahr.stock.domain.model.IndexHistory
 import com.ahr.stock.domain.repository.IndexRepository
 
 class IndexRepositoryImpl(
@@ -15,7 +15,11 @@ class IndexRepositoryImpl(
         period: String,
         interval: String,
         limit: Int,
-    ): Result<List<IndexPoint>> =
-        apiService.getIndexHistory(symbol, period, interval, limit).map { indexPointMapper.mapList(it.data) }
+    ): Result<IndexHistory> =
+        apiService.getIndexHistory(symbol, period, interval, limit).map { dto ->
+            IndexHistory(
+                points = indexPointMapper.mapList(dto.data),
+                previousClose = dto.previousClose,
+            )
+        }
 }
-

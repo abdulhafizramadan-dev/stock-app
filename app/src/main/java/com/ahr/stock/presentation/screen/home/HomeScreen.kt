@@ -211,9 +211,9 @@ private fun IndexChartSection(
         ?.let { state.indexPoints.getOrNull(it) }
         ?: state.indexPoints.lastOrNull()
 
-    val firstClose = state.indexPoints.firstOrNull()?.close ?: 0.0
-    val computedChangePercent = if (firstClose != 0.0 && displayPoint != null)
-        ((displayPoint.close - firstClose) / firstClose) * 100.0 else 0.0
+    val baseClose = state.indexPreviousClose ?: state.indexPoints.firstOrNull()?.close ?: 0.0
+    val computedChangePercent = if (baseClose != 0.0 && displayPoint != null)
+        ((displayPoint.close - baseClose) / baseClose) * 100.0 else 0.0
 
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.Bottom) {
@@ -245,7 +245,7 @@ private fun IndexChartSection(
                 data = state.indexPoints,
                 xSelector = { it.datetime },
                 ySelector = { it.close },
-                baselineValue = state.indexPoints.firstOrNull()?.close,
+                baselineValue = state.indexPreviousClose ?: state.indexPoints.firstOrNull()?.close,
                 showYAxisLabels = true,
                 onDragIndexChange = { onIntent(HomeIntent.OnChartDrag(it)) },
                 modifier = Modifier.fillMaxWidth(),

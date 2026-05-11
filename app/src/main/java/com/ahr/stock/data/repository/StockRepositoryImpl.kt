@@ -6,9 +6,9 @@ import com.ahr.stock.data.mapper.StockDetailMapper
 import com.ahr.stock.data.mapper.StockMapper
 import com.ahr.stock.data.remote.api.StockApiService
 import com.ahr.stock.domain.model.NewsItem
-import com.ahr.stock.domain.model.OhlcvPoint
 import com.ahr.stock.domain.model.Stock
 import com.ahr.stock.domain.model.StockDetail
+import com.ahr.stock.domain.model.StockHistory
 import com.ahr.stock.domain.repository.StockRepository
 
 class StockRepositoryImpl(
@@ -33,8 +33,13 @@ class StockRepositoryImpl(
         period: String,
         interval: String,
         limit: Int,
-    ): Result<List<OhlcvPoint>> =
-        apiService.getStockHistory(ticker, period, interval, limit).map { ohlcvMapper.mapList(it.history) }
+    ): Result<StockHistory> =
+        apiService.getStockHistory(ticker, period, interval, limit).map { dto ->
+            StockHistory(
+                points = ohlcvMapper.mapList(dto.history),
+                previousClose = dto.previousClose,
+            )
+        }
 
     override suspend fun getStockNews(ticker: String, count: Int): Result<List<NewsItem>> =
         apiService.getStockNews(ticker, count).map { newsItemMapper.mapList(it.news) }

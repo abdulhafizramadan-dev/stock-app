@@ -92,7 +92,8 @@ class DetailViewModel(
                     isLoading = false,
                     isRefreshing = false,
                     detail = detailResult.getOrNull(),
-                    history = historyResult.getOrDefault(emptyList()),
+                    history = historyResult.getOrNull()?.points ?: emptyList(),
+                    previousClose = historyResult.getOrNull()?.previousClose,
                     news = newsResult.getOrDefault(emptyList()),
                     error = null,
                 )
@@ -111,8 +112,13 @@ class DetailViewModel(
                 )
             )
             result.fold(
-                onSuccess = { points ->
-                    _state.update { it.copy(history = points) }
+                onSuccess = { stockHistory ->
+                    _state.update {
+                        it.copy(
+                            history = stockHistory.points,
+                            previousClose = stockHistory.previousClose,
+                        )
+                    }
                 },
                 onFailure = { error ->
                     val message = error.message ?: "Failed to load history"

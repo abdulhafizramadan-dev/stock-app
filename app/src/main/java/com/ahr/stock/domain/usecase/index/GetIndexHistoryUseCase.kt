@@ -1,12 +1,12 @@
 package com.ahr.stock.domain.usecase.index
 
-import com.ahr.stock.domain.model.IndexPoint
+import com.ahr.stock.domain.model.IndexHistory
 import com.ahr.stock.domain.repository.IndexRepository
 import com.ahr.stock.domain.usecase.UseCase
 
 class GetIndexHistoryUseCase(
     private val repository: IndexRepository,
-) : UseCase<GetIndexHistoryUseCase.Params, Result<List<IndexPoint>>> {
+) : UseCase<GetIndexHistoryUseCase.Params, Result<IndexHistory>> {
 
     data class Params(
         val symbol: String,
@@ -15,7 +15,6 @@ class GetIndexHistoryUseCase(
         val limit: Int = Int.MAX_VALUE,
     )
 
-    override suspend fun invoke(params: Params): Result<List<IndexPoint>> =
+    override suspend fun invoke(params: Params): Result<IndexHistory> =
         repository.getIndexHistory(params.symbol, params.period, params.interval, params.limit)
 }
-

@@ -22,6 +22,7 @@ data class HomeState(
     val gainers: List<Stock> = emptyList(),
     val losers: List<Stock> = emptyList(),
     val indexPoints: List<IndexPoint> = emptyList(),
+    val indexPreviousClose: Double? = null,
     val news: List<NewsItem> = emptyList(),
     val sectors: List<SectorSummary> = emptyList(),
     val selectedTab: MarketTab = MarketTab.GAINERS,

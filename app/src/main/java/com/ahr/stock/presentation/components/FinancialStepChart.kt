@@ -73,10 +73,13 @@ fun <T> FinancialStepChart(
     val hapticFeedback = LocalHapticFeedback.current
     var crosshairX by remember { mutableStateOf<Float?>(null) }
 
-    val dynamicGutterWidth = remember(dataPoints, labelFontSize, showYAxisLabels) {
+    val dynamicGutterWidth = remember(dataPoints, labelFontSize, showYAxisLabels, baselineValue) {
         if (!showYAxisLabels) return@remember 0f
-        val minY = dataPoints.minOf { it.y }
-        val maxY = dataPoints.maxOf { it.y }
+        val rawMinY = dataPoints.minOf { it.y }
+        val rawMaxY = dataPoints.maxOf { it.y }
+        val baseline = baselineValue ?: rawMinY
+        val minY = minOf(rawMinY, baseline)
+        val maxY = maxOf(rawMaxY, baseline)
         val yRange = if (maxY == minY) 1.0 else maxY - minY
         val rawStep = yRange / 4.0
         val magnitude = 10.0.pow(floor(log10(abs(rawStep))))
@@ -133,8 +136,11 @@ fun <T> FinancialStepChart(
             drawRect(color = backgroundColor, size = size)
         }
 
-        val minY = dataPoints.minOf { it.y }
-        val maxY = dataPoints.maxOf { it.y }
+        val rawMinY = dataPoints.minOf { it.y }
+        val rawMaxY = dataPoints.maxOf { it.y }
+        val baseline = baselineValue ?: rawMinY
+        val minY = minOf(rawMinY, baseline)
+        val maxY = maxOf(rawMaxY, baseline)
         val minX = dataPoints.minOf { it.x }
         val maxX = dataPoints.maxOf { it.x }
 
@@ -147,7 +153,6 @@ fun <T> FinancialStepChart(
         val xStep = chartWidth / (dataPoints.size - 1).coerceAtLeast(1)
         val dynamicCornerRadius = minOf(xStep * 0.15f, 8.dp.toPx())
 
-        val baseline = baselineValue ?: minY
         val baselineY = yToCanvas(baseline)
 
         drawBaselineDashed(y = baselineY, chartWidth = chartWidth, strokePx = strokePx, gridColor = gridColor)
@@ -194,9 +199,9 @@ fun <T> FinancialStepChart(
 
         if (crosshairX == null) {
             drawPeakValleyCallout(
-                value = maxY,
+                value = rawMaxY,
                 canvasX = xToCanvas(maxPoint.x),
-                canvasY = yToCanvas(maxY),
+                canvasY = yToCanvas(rawMaxY),
                 color = lineColor,
                 above = true,
                 chartWidth = chartWidth,
@@ -205,9 +210,9 @@ fun <T> FinancialStepChart(
             )
 
             drawPeakValleyCallout(
-                value = minY,
+                value = rawMinY,
                 canvasX = xToCanvas(minPoint.x),
-                canvasY = yToCanvas(minY),
+                canvasY = yToCanvas(rawMinY),
                 color = lineColor,
                 above = false,
                 chartWidth = chartWidth,
