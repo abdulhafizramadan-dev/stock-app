@@ -13,9 +13,13 @@ import com.ahr.stock.domain.repository.IndexRepository
 import com.ahr.stock.domain.repository.StockRepository
 import org.koin.dsl.module
 
+import com.ahr.stock.data.mapper.SectorSummaryMapper
 import com.ahr.stock.data.remote.api.NewsApiService
+import com.ahr.stock.data.remote.api.SectorApiService
 import com.ahr.stock.data.repository.NewsRepositoryImpl
+import com.ahr.stock.data.repository.SectorRepositoryImpl
 import com.ahr.stock.domain.repository.NewsRepository
+import com.ahr.stock.domain.repository.SectorRepository
 
 val dataModule = module {
     single { StockMapper() }
@@ -23,13 +27,16 @@ val dataModule = module {
     single { OhlcvMapper() }
     single { NewsItemMapper() }
     single { IndexPointMapper() }
+    single { SectorSummaryMapper() }
 
     single { StockApiService(get()) }
     single { IndexApiService(get()) }
     single { NewsApiService(get()) }
+    single { SectorApiService(get()) }
 
     single<StockRepository> { StockRepositoryImpl(get(), get(), get(), get(), get()) }
     single<IndexRepository> { IndexRepositoryImpl(get(), get()) }
     single<NewsRepository> { NewsRepositoryImpl(get(), get()) }
+    single<SectorRepository> { SectorRepositoryImpl(get(), get()) }
 }
 

@@ -20,6 +20,7 @@
 | `/stocks/{ticker}/news` | GET | Stock news feed | 30 min |
 | `/news/highlighted` | GET | Market/highlighted news | 30 min |
 | `/index/{symbol}/history` | GET | Market index data | 1 hour |
+| `/sectors/summary` | GET | Sector performance summary | 5 min |
 
 ---
 
@@ -593,6 +594,168 @@ GET /index/^JKSE/history?period=1d&interval=15m&limit=50
 
 ---
 
+## 9. Sector Performance Summary
+
+**Purpose:** Get today's performance summary for all market sectors, showing which sectors are up or down
+
+**Endpoint:** `GET /sectors/summary`
+
+**Query Parameters:**
+
+| Name | Type | Default | Required | Description |
+|------|------|---------|----------|-------------|
+| `region` | string | "id" | No | Market region (e.g., "id" for Indonesia, "us" for USA) |
+
+**Example Request:**
+```bash
+GET /sectors/summary?region=id
+```
+
+**Response:**
+```json
+{
+  "sectors": [
+    {
+      "name": "Healthcare",
+      "key": "healthcare",
+      "change_percent": 2.44,
+      "stock_count": 38,
+      "direction": "up"
+    },
+    {
+      "name": "Industrials",
+      "key": "industrials",
+      "change_percent": 0.97,
+      "stock_count": 100,
+      "direction": "up"
+    },
+    {
+      "name": "Consumer Defensive",
+      "key": "consumer-defensive",
+      "change_percent": 0.96,
+      "stock_count": 100,
+      "direction": "up"
+    },
+    {
+      "name": "Utilities",
+      "key": "utilities",
+      "change_percent": 0.92,
+      "stock_count": 14,
+      "direction": "up"
+    },
+    {
+      "name": "Technology",
+      "key": "technology",
+      "change_percent": 0.87,
+      "stock_count": 35,
+      "direction": "up"
+    },
+    {
+      "name": "Consumer Cyclical",
+      "key": "consumer-cyclical",
+      "change_percent": 0.78,
+      "stock_count": 100,
+      "direction": "up"
+    },
+    {
+      "name": "Real Estate",
+      "key": "real-estate",
+      "change_percent": -0.28,
+      "stock_count": 82,
+      "direction": "down"
+    },
+    {
+      "name": "Basic Materials",
+      "key": "basic-materials",
+      "change_percent": -0.32,
+      "stock_count": 83,
+      "direction": "down"
+    },
+    {
+      "name": "Financial Services",
+      "key": "financial-services",
+      "change_percent": -0.44,
+      "stock_count": 100,
+      "direction": "down"
+    },
+    {
+      "name": "Communication Services",
+      "key": "communication-services",
+      "change_percent": -0.47,
+      "stock_count": 45,
+      "direction": "down"
+    },
+    {
+      "name": "Energy",
+      "key": "energy",
+      "change_percent": -1.53,
+      "stock_count": 56,
+      "direction": "down"
+    }
+  ],
+  "count": 11,
+  "region": "id",
+  "timestamp": "2026-05-11T21:38:44.123456",
+  "cached": false
+}
+```
+
+**Sector Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Human-readable sector name (e.g., "Financial Services") |
+| `key` | string | Sector identifier slug (e.g., "financial-services") |
+| `change_percent` | float | Average % change of all stocks in the sector today |
+| `stock_count` | int | Number of stocks sampled for the average |
+| `direction` | string | `"up"`, `"down"`, or `"flat"` |
+
+**Supported Sectors:**
+
+| Key | Name |
+|-----|------|
+| `financial-services` | Financial Services |
+| `energy` | Energy |
+| `technology` | Technology |
+| `basic-materials` | Basic Materials |
+| `consumer-cyclical` | Consumer Cyclical |
+| `consumer-defensive` | Consumer Defensive |
+| `healthcare` | Healthcare |
+| `industrials` | Industrials |
+| `real-estate` | Real Estate |
+| `utilities` | Utilities |
+| `communication-services` | Communication Services |
+
+**How It Works:**
+- For each sector, runs a `yf.screen()` query filtered by `region` + `sector`
+- Aggregates the average `regularMarketChangePercent` across up to 100 stocks per sector
+- Returns sectors sorted from best to worst performer (descending `change_percent`)
+- Sectors with no stocks in the given region are excluded from the result
+
+**UI Usage Tips:**
+- Display as a horizontal scrollable card list or vertical list
+- Color-code by `direction`: green for `"up"`, red for `"down"`, grey for `"flat"`
+- Show `change_percent` with `+` prefix for positive values
+- `stock_count` can be shown as a subtitle (e.g., "38 stocks")
+- Sort is already applied server-side (best → worst performer)
+
+**Performance Note:**
+- This endpoint makes 11 upstream API calls (one per sector) — first load takes ~5-8s
+- **Always use cached response when available** (`cached: true`)
+- Server caches for 5 minutes; subsequent calls return instantly
+
+**Error Response:**
+```json
+{
+  "error": "Error description",
+  "status": "failed",
+  "region": "id",
+  "timestamp": "2026-05-11T10:30:00.123456"
+}
+```
+
+---
+
 ## Error Handling
 
 ### HTTP Status Codes
@@ -649,6 +812,7 @@ GET /index/^JKSE/history?period=1d&interval=15m&limit=50
 | Stock News | 30 min | `news_{ticker}_{count}_{tab}` |
 | Highlighted News | 30 min | `news_highlighted_{count}_{min_id}` |
 | Index History | 1 hour | `index_{symbol}_{period}_{interval}_{limit}` |
+| Sectors Summary | 5 min | `sectors_{region}` |
 
 ### Cache Headers
 All responses include:
@@ -687,6 +851,12 @@ curl "http://localhost:8000/news/highlighted?count=10&min_id=1234567890"
 
 # Index history (1 day, 15-minute intervals)
 curl "http://localhost:8000/index/^JKSE/history?period=2d&interval=15m&limit=20"
+
+# Sector summary (Indonesia)
+curl "http://localhost:8000/sectors/summary?region=id"
+
+# Sector summary (USA)
+curl "http://localhost:8000/sectors/summary?region=us"
 ```
 
 ### Interactive Documentation
@@ -703,6 +873,8 @@ http://localhost:8000/docs
 - [ ] History returns OHLCV data array
 - [ ] News returns news array (or empty with message)
 - [ ] Index returns data with datetime timestamps
+- [ ] Sectors summary returns 11 sectors sorted by change_percent
+- [ ] Sectors direction field is "up"/"down"/"flat"
 - [ ] Cache works (second request shows cached=true)
 - [ ] Invalid ticker returns appropriate error
 - [ ] Rate limiting triggers 429 when exceeded
@@ -716,9 +888,10 @@ http://localhost:8000/docs
 1. GET /stocks/gainers?limit=10
 2. GET /stocks/losers?limit=10
 3. GET /index/^JKSE/history?period=2d&interval=15m&limit=30
+4. GET /sectors/summary?region=id
 
-All requests can be made in parallel.
-Total expected time: ~2-3s (first load), <500ms (cached)
+Requests 1-3 can be made in parallel. Request 4 is slower (~5-8s first load).
+Total expected time: ~5-8s (first load), <500ms (cached)
 ```
 
 ### Workflow 2: View Stock Detail
@@ -761,13 +934,21 @@ Parse and display side-by-side comparison.
 
 ## Changelog
 
+### v1.2 (May 11, 2026)
+- Added `/sectors/summary` endpoint
+  - Returns today's performance for all 11 Yahoo Finance sectors
+  - Sorted by `change_percent` descending (best → worst)
+  - Includes `direction` field: `"up"` / `"down"` / `"flat"`
+  - Supports any Yahoo Finance region code (default: `"id"`)
+  - 5-minute server cache
+
 ### v1.1 (May 9, 2026)
 - **Breaking Change:** Updated `/news/highlighted` endpoint
-    - Removed `region` parameter (now uses Finnhub general news for all regions)
-    - Added `min_id` parameter for cursor-based pagination
-    - Changed source from index tickers to "finnhub"
-    - Added `next_min_id` and `has_next` fields to response for pagination support
-    - More reliable and comprehensive market news coverage
+  - Removed `region` parameter (now uses Finnhub general news for all regions)
+  - Added `min_id` parameter for cursor-based pagination
+  - Changed source from index tickers to "finnhub"
+  - Added `next_min_id` and `has_next` fields to response for pagination support
+  - More reliable and comprehensive market news coverage
 
 ### v1.0 (May 6, 2026)
 - Initial API specification
@@ -779,5 +960,5 @@ Parse and display side-by-side comparison.
 
 ---
 
-*API Specification | StockBit Mini App | Last Updated: May 9, 2026*
+*API Specification | StockBit Mini App | Last Updated: May 11, 2026*
 

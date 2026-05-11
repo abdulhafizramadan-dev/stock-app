@@ -41,7 +41,9 @@ import androidx.compose.ui.unit.sp
 import com.ahr.stock.presentation.components.FinancialStepChart
 import com.ahr.stock.presentation.components.NewsCard
 import com.ahr.stock.presentation.components.SectionCard
+import com.ahr.stock.presentation.components.SectorCard
 import com.ahr.stock.presentation.components.StockRow
+import com.ahr.stock.domain.model.SectorSummary
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -166,6 +168,15 @@ private fun MarketContent(
             }
         }
 
+        if (state.sectors.isNotEmpty()) {
+            item {
+                SectorsSummarySection(
+                    sectors = state.sectors,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+        }
+
         if (state.news.isNotEmpty()) {
             item {
                 SectionCard(modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -239,6 +250,45 @@ private fun IndexChartSection(
                 onDragIndexChange = { onIntent(HomeIntent.OnChartDrag(it)) },
                 modifier = Modifier.fillMaxWidth(),
             )
+        }
+    }
+}
+
+@Composable
+private fun SectorsSummarySection(
+    sectors: List<SectorSummary>,
+    modifier: Modifier = Modifier,
+) {
+    val columns = 3
+    SectionCard(modifier = modifier) {
+        Text(
+            text = "SECTORS",
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp)
+                .padding(bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            sectors.chunked(columns).forEach { rowItems ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    rowItems.forEach { sector ->
+                        SectorCard(sector = sector, modifier = Modifier.weight(1f))
+                    }
+                    if (rowItems.size < columns) {
+                        Spacer(modifier = Modifier.weight((columns - rowItems.size).toFloat()))
+                    }
+                }
+            }
         }
     }
 }

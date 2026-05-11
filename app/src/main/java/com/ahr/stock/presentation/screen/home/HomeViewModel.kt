@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ahr.stock.domain.usecase.index.GetIndexHistoryUseCase
 import com.ahr.stock.domain.usecase.news.GetHighlightedNewsUseCase
+import com.ahr.stock.domain.usecase.sector.GetSectorsSummaryUseCase
 import com.ahr.stock.domain.usecase.stock.GetGainersUseCase
 import com.ahr.stock.domain.usecase.stock.GetLosersUseCase
 import kotlinx.coroutines.async
@@ -21,6 +22,7 @@ class HomeViewModel(
     private val getLosers: GetLosersUseCase,
     private val getIndexHistory: GetIndexHistoryUseCase,
     private val getHighlightedNews: GetHighlightedNewsUseCase,
+    private val getSectorsSummary: GetSectorsSummaryUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -59,11 +61,13 @@ class HomeViewModel(
                 )
             }
             val newsDeferred = async { getHighlightedNews(GetHighlightedNewsUseCase.Params(count = 5)) }
+            val sectorsDeferred = async { getSectorsSummary(GetSectorsSummaryUseCase.Params()) }
 
             val gainersResult = gainersDeferred.await()
             val losersResult = losersDeferred.await()
             val indexResult = indexDeferred.await()
             val newsResult = newsDeferred.await()
+            val sectorsResult = sectorsDeferred.await()
 
             val error = gainersResult.exceptionOrNull()
                 ?: losersResult.exceptionOrNull()
@@ -89,6 +93,7 @@ class HomeViewModel(
                     losers = losersResult.getOrDefault(emptyList()),
                     indexPoints = indexResult.getOrDefault(emptyList()),
                     news = newsResult.getOrDefault(emptyList()),
+                    sectors = sectorsResult.getOrDefault(emptyList()),
                     error = null,
                 )
             }

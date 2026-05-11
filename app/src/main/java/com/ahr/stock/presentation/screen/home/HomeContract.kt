@@ -2,6 +2,7 @@ package com.ahr.stock.presentation.screen.home
 
 import com.ahr.stock.domain.model.IndexPoint
 import com.ahr.stock.domain.model.NewsItem
+import com.ahr.stock.domain.model.SectorSummary
 import com.ahr.stock.domain.model.Stock
 
 enum class MarketTab { GAINERS, LOSERS }
@@ -22,6 +23,7 @@ data class HomeState(
     val losers: List<Stock> = emptyList(),
     val indexPoints: List<IndexPoint> = emptyList(),
     val news: List<NewsItem> = emptyList(),
+    val sectors: List<SectorSummary> = emptyList(),
     val selectedTab: MarketTab = MarketTab.GAINERS,
     val draggedIndex: Int? = null,
     val error: String? = null,
