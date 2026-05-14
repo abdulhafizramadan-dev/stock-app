@@ -8,9 +8,11 @@ data class StockDto(
     val ticker: String,
     val name: String,
     val price: Double,
+    @SerialName("change_value") val changeValue: Double,
     @SerialName("change_percent") val changePercent: Double,
     val volume: Long,
     @SerialName("market_cap") val marketCap: Long,
+    @SerialName("transaction_value") val transactionValue: Double? = null,
 )
 
 @Serializable

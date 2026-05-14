@@ -37,6 +37,6 @@ val dataModule = module {
     single<StockRepository> { StockRepositoryImpl(get(), get(), get(), get(), get()) }
     single<IndexRepository> { IndexRepositoryImpl(get(), get()) }
     single<NewsRepository> { NewsRepositoryImpl(get(), get()) }
-    single<SectorRepository> { SectorRepositoryImpl(get(), get()) }
+    single<SectorRepository> { SectorRepositoryImpl(get(), get(), get()) }
 }
 

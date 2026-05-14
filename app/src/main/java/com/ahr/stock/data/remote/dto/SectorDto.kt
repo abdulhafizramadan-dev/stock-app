@@ -13,6 +13,23 @@ data class SectorSummaryResponseDto(
 )
 
 @Serializable
+data class SectorStocksResponseDto(
+    val stocks: List<StockDto>,
+    val count: Int,
+    val sector: SectorInfoDto,
+    val region: String,
+    val timestamp: String,
+    val cached: Boolean,
+)
+
+@Serializable
+data class SectorInfoDto(
+    val name: String,
+    val key: String,
+    val displayName: String,
+)
+
+@Serializable
 data class SectorDto(
     val name: String,
     val key: String,

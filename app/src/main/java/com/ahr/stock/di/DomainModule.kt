@@ -2,6 +2,7 @@ package com.ahr.stock.di
 
 import com.ahr.stock.domain.usecase.index.GetIndexHistoryUseCase
 import com.ahr.stock.domain.usecase.news.GetHighlightedNewsUseCase
+import com.ahr.stock.domain.usecase.sector.GetSectorStocksUseCase
 import com.ahr.stock.domain.usecase.sector.GetSectorsSummaryUseCase
 import com.ahr.stock.domain.usecase.stock.GetGainersUseCase
 import com.ahr.stock.domain.usecase.stock.GetLosersUseCase
@@ -23,5 +24,6 @@ val domainModule = module {
     factory { GetIndexHistoryUseCase(get()) }
     factory { GetHighlightedNewsUseCase(get()) }
     factory { GetSectorsSummaryUseCase(get()) }
+    factory { GetSectorStocksUseCase(get()) }
 }
 

@@ -10,6 +10,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.ahr.stock.presentation.screen.detail.DetailScreen
 import com.ahr.stock.presentation.screen.home.HomeScreen
+import com.ahr.stock.presentation.screen.sectorstocks.SectorStocksScreen
 
 @Composable
 fun NavGraph(
@@ -26,6 +27,9 @@ fun NavGraph(
                 onNavigateToDetail = { ticker ->
                     navController.navigate(Screen.StockDetail(ticker).createRoute())
                 },
+                onNavigateToSectorStocks = { sectorKey ->
+                    navController.navigate(Screen.SectorStocks(sectorKey).createRoute())
+                },
             )
         }
 
@@ -37,6 +41,22 @@ fun NavGraph(
             DetailScreen(
                 ticker = ticker,
                 onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(
+            route = Screen.SectorStocks("").route,
+            arguments = listOf(
+                navArgument("sectorKey") { type = NavType.StringType },
+            ),
+        ) { backStackEntry ->
+            val sectorKey = backStackEntry.arguments?.getString("sectorKey") ?: return@composable
+            SectorStocksScreen(
+                sectorKey = sectorKey,
+                onBack = { navController.popBackStack() },
+                onNavigateToDetail = { ticker ->
+                    navController.navigate(Screen.StockDetail(ticker).createRoute())
+                },
             )
         }
     }

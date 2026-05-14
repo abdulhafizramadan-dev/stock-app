@@ -50,7 +50,7 @@ fun StockRow(
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
             )
-            PriceChip(changePercent = stock.changePercent)
+            PriceChip(changeValue = stock.changeValue, changePercent = stock.changePercent)
         }
     }
 }
@@ -66,6 +66,7 @@ private fun StockRowPreview() {
             changePercent = 2.35,
             volume = 1_000_000L,
             marketCap = 1_000_000_000L,
+            changeValue = 220.0,
         ),
         onClick = {},
     )

@@ -29,43 +29,63 @@ app/src/main/java/com/ahr/stock/
 │   ├── remote/
 │   │   ├── api/
 │   │   │   ├── StockApiService.kt
-│   │   │   └── IndexApiService.kt
+│   │   │   ├── IndexApiService.kt
+│   │   │   ├── SectorApiService.kt
+│   │   │   └── NewsApiService.kt
 │   │   ├── dto/
 │   │   │   ├── StockDto.kt
 │   │   │   ├── StockDetailDto.kt
 │   │   │   ├── OhlcvDto.kt
 │   │   │   ├── NewsItemDto.kt
-│   │   │   └── IndexDataPointDto.kt
+│   │   │   ├── IndexDataPointDto.kt
+│   │   │   └── SectorDto.kt             ← SectorSummaryResponseDto, SectorStocksResponseDto, SectorInfoDto
 │   └── mapper/
 │       │   ├── Mapper.kt               ← base interface contract
 │       │   ├── StockMapper.kt
 │       │   ├── StockDetailMapper.kt
 │       │   ├── OhlcvMapper.kt
 │       │   ├── NewsItemMapper.kt
-│       │   └── IndexPointMapper.kt
+│       │   ├── IndexPointMapper.kt
+│       │   └── SectorSummaryMapper.kt
 │   └── repository/
 │       ├── StockRepositoryImpl.kt
-│       └── IndexRepositoryImpl.kt
+│       ├── IndexRepositoryImpl.kt
+│       ├── NewsRepositoryImpl.kt
+│       └── SectorRepositoryImpl.kt
 ├── domain/
 │   ├── model/
 │   │   ├── Stock.kt
 │   │   ├── StockDetail.kt
 │   │   ├── OhlcvPoint.kt
 │   │   ├── NewsItem.kt
-│   │   └── IndexPoint.kt
+│   │   ├── IndexPoint.kt
+│   │   ├── SectorSummary.kt
+│   │   ├── SectorWithStocks.kt         ← sectorDisplayName + stocks list
+│   │   ├── StockHistory.kt
+│   │   ├── IndexHistory.kt
+│   │   └── ChartPeriod.kt
 │   ├── repository/
 │   │   ├── StockRepository.kt
-│   │   └── IndexRepository.kt
+│   │   ├── IndexRepository.kt
+│   │   ├── NewsRepository.kt
+│   │   └── SectorRepository.kt
 │   └── usecase/
 │       ├── UseCase.kt                  ← base interface contract
 │       ├── stock/
 │       │   ├── GetGainersUseCase.kt
 │       │   ├── GetLosersUseCase.kt
+│       │   ├── GetTopValuesUseCase.kt
+│       │   ├── GetTopVolumesUseCase.kt
 │       │   ├── GetStockDetailUseCase.kt
 │       │   ├── GetStockHistoryUseCase.kt
-│       │   └── GetStockNewsUseCase.kt
-│       └── index/
-│           └── GetIndexHistoryUseCase.kt
+│       │   ├── GetStockNewsUseCase.kt
+│       ├── index/
+│       │   └── GetIndexHistoryUseCase.kt
+│       ├── news/
+│       │   └── GetHighlightedNewsUseCase.kt
+│       └── sector/
+│           ├── GetSectorsSummaryUseCase.kt
+│           └── GetSectorStocksUseCase.kt
 ├── presentation/
 │   ├── navigation/
 │   │   ├── NavGraph.kt
@@ -74,21 +94,30 @@ app/src/main/java/com/ahr/stock/
 │   │   ├── StockRow.kt
 │   │   ├── NewsCard.kt
 │   │   ├── PriceChip.kt
-│   │   └── PeriodSelector.kt
+│   │   ├── PeriodSelector.kt
+│   │   ├── SectionCard.kt
+│   │   ├── SectorCard.kt
+│   │   └── FinancialStepChart.kt
 │   └── screen/
 │       ├── home/
 │       │   ├── HomeScreen.kt
 │       │   ├── HomeViewModel.kt
 │       │   └── HomeContract.kt
-│       └── detail/
-│           ├── DetailScreen.kt
-│           ├── DetailViewModel.kt
-│           └── DetailContract.kt
+│       ├── detail/
+│       │   ├── DetailScreen.kt
+│       │   ├── DetailViewModel.kt
+│       │   └── DetailContract.kt
+│       └── sectorstocks/
+│           ├── SectorStocksScreen.kt
+│           ├── SectorStocksViewModel.kt
+│           └── SectorStocksContract.kt
 ├── di/
 │   ├── NetworkModule.kt
 │   ├── DataModule.kt
 │   ├── DomainModule.kt
 │   └── PresentationModule.kt
+├── utils/
+│   └── DateUtils.kt
 └── App.kt
 ```
 
@@ -144,8 +173,10 @@ sealed interface HomeIntent {
     data object LoadMarket : HomeIntent
     data object Refresh : HomeIntent
     data class SelectStock(val ticker: String) : HomeIntent
+    data class SelectSector(val sectorKey: String) : HomeIntent
     data class SelectTab(val tab: MarketTab) : HomeIntent
     data class OnChartDrag(val index: Int?) : HomeIntent
+    data class OpenNewsArticle(val url: String) : HomeIntent
 }
 
 data class HomeState(
@@ -153,15 +184,45 @@ data class HomeState(
     val isRefreshing: Boolean = false,
     val gainers: List<Stock> = emptyList(),
     val losers: List<Stock> = emptyList(),
+    val topValues: List<Stock> = emptyList(),
+    val topVolumes: List<Stock> = emptyList(),
     val indexPoints: List<IndexPoint> = emptyList(),
+    val indexPreviousClose: Double? = null,
+    val news: List<NewsItem> = emptyList(),
+    val sectors: List<SectorSummary> = emptyList(),
     val selectedTab: MarketTab = MarketTab.GAINERS,
     val draggedIndex: Int? = null,
-    val error: String? = null
+    val error: String? = null,
 )
 
 sealed interface HomeEffect {
     data class NavigateToDetail(val ticker: String) : HomeEffect
+    data class NavigateToSectorStocks(val sectorKey: String) : HomeEffect
+    data class OpenUrl(val url: String) : HomeEffect
     data class ShowSnackbar(val message: String) : HomeEffect
+}
+```
+
+### SectorStocksContract
+
+```kotlin
+sealed interface SectorStocksIntent {
+    data class Load(val sectorKey: String) : SectorStocksIntent
+    data object Refresh : SectorStocksIntent
+    data class SelectStock(val ticker: String) : SectorStocksIntent
+}
+
+data class SectorStocksState(
+    val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
+    val sectorName: String = "",        // populated from API response sector.displayName
+    val stocks: List<Stock> = emptyList(),
+    val error: String? = null,
+)
+
+sealed interface SectorStocksEffect {
+    data class NavigateToDetail(val ticker: String) : SectorStocksEffect
+    data class ShowSnackbar(val message: String) : SectorStocksEffect
 }
 ```
 
@@ -344,9 +405,9 @@ For parameterless use cases, declare `UseCase<Unit, Result<T>>` and call with `i
 | Module | File | Provides |
 |---|---|---|
 | `networkModule` | `di/NetworkModule.kt` | `HttpClient`, `Json` instance |
-| `dataModule` | `di/DataModule.kt` | `StockApiService`, `IndexApiService`, `StockRepository` bound to `StockRepositoryImpl`, `IndexRepository` bound to `IndexRepositoryImpl` |
+| `dataModule` | `di/DataModule.kt` | All API services, all mappers, repository bindings |
 | `domainModule` | `di/DomainModule.kt` | All use cases as `factory {}` |
-| `presentationModule` | `di/PresentationModule.kt` | `HomeViewModel`, `DetailViewModel` as `viewModel {}` |
+| `presentationModule` | `di/PresentationModule.kt` | `HomeViewModel`, `DetailViewModel`, `SectorStocksViewModel` as `viewModel {}` |
 
 ### Koin Bootstrap
 
@@ -365,7 +426,8 @@ startKoin {
 | Screen | Route | Arguments |
 |---|---|---|
 | `Screen.Home` | `"home"` | None |
-| `Screen.StockDetail` | `"detail/{ticker}"` | `ticker: String` (URL-encoded) |
+| `Screen.StockDetail` | `"detail/{ticker}"` | `ticker: String` |
+| `Screen.SectorStocks` | `"sector/{sectorKey}"` | `sectorKey: String` |
 
 Back navigation uses the standard Compose Navigation back-stack pop (`navController.popBackStack()`). No custom back-stack manipulation needed.
 

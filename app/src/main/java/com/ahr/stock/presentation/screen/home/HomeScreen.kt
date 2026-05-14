@@ -50,6 +50,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun HomeScreen(
     onNavigateToDetail: (String) -> Unit,
+    onNavigateToSectorStocks: (sectorKey: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
@@ -61,6 +62,7 @@ fun HomeScreen(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is HomeEffect.NavigateToDetail -> onNavigateToDetail(effect.ticker)
+                is HomeEffect.NavigateToSectorStocks -> onNavigateToSectorStocks(effect.sectorKey)
                 is HomeEffect.OpenUrl -> {
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(effect.url))
                     context.startActivity(intent)
@@ -137,7 +139,7 @@ private fun MarketContent(
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     letterSpacing = 1.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp),
                 )
                 ScrollableTabRow(
                     selectedTabIndex = tabs.indexOf(state.selectedTab),
@@ -179,6 +181,9 @@ private fun MarketContent(
             item {
                 SectorsSummarySection(
                     sectors = state.sectors,
+                    onSectorClick = { sector ->
+                        onIntent(HomeIntent.SelectSector(sector.key))
+                    },
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
@@ -252,7 +257,7 @@ private fun IndexChartSection(
                 data = state.indexPoints,
                 xSelector = { it.datetime },
                 ySelector = { it.close },
-                baselineValue = state.indexPreviousClose ?: state.indexPoints.firstOrNull()?.close,
+                baselineValue = state.indexPoints.firstOrNull()?.close,
                 showYAxisLabels = true,
                 onDragIndexChange = { onIntent(HomeIntent.OnChartDrag(it)) },
                 modifier = Modifier.fillMaxWidth(),
@@ -264,6 +269,7 @@ private fun IndexChartSection(
 @Composable
 private fun SectorsSummarySection(
     sectors: List<SectorSummary>,
+    onSectorClick: (SectorSummary) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val columns = 3
@@ -289,7 +295,7 @@ private fun SectorsSummarySection(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     rowItems.forEach { sector ->
-                        SectorCard(sector = sector, modifier = Modifier.weight(1f))
+                        SectorCard(sector = sector, onClick = onSectorClick, modifier = Modifier.weight(1f))
                     }
                     if (rowItems.size < columns) {
                         Spacer(modifier = Modifier.weight((columns - rowItems.size).toFloat()))

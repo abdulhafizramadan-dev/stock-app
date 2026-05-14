@@ -19,6 +19,7 @@ private val RedText = Color(0xFFE53935)
 
 @Composable
 fun PriceChip(
+    changeValue: Double,
     changePercent: Double,
     modifier: Modifier = Modifier,
 ) {
@@ -26,7 +27,9 @@ fun PriceChip(
     val backgroundColor = if (isPositive) GreenBackground else RedBackground
     val textColor = if (isPositive) GreenText else RedText
     val sign = if (isPositive) "+" else ""
-    val label = "$sign${"%.2f".format(changePercent)}%"
+    val value = if (changeValue >= 0) changeValue else -changeValue
+    val formattedValue = "%.0f".format(value)
+    val label = "$sign$formattedValue (${"%.2f".format(changePercent)}%)"
 
     Text(
         text = label,
@@ -42,6 +45,6 @@ fun PriceChip(
 @Preview(showBackground = true)
 @Composable
 private fun PriceChipPreview() {
-    PriceChip(changePercent = 3.45)
+    PriceChip(changePercent = 3.45, changeValue = 15.0)
 }
 

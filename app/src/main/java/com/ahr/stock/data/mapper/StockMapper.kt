@@ -8,9 +8,11 @@ class StockMapper : Mapper<StockDto, Stock> {
         ticker = from.ticker,
         name = from.name,
         price = from.price,
+        changeValue = from.changeValue,
         changePercent = from.changePercent,
         volume = from.volume,
         marketCap = from.marketCap,
+        transactionValue = from.transactionValue,
     )
 }
 

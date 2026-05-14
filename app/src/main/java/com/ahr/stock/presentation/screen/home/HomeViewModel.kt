@@ -44,6 +44,7 @@ class HomeViewModel(
             is HomeIntent.LoadMarket -> loadMarket(isRefresh = false)
             is HomeIntent.Refresh -> loadMarket(isRefresh = true)
             is HomeIntent.SelectStock -> navigateToDetail(intent.ticker)
+            is HomeIntent.SelectSector -> navigateToSectorStocks(intent.sectorKey)
             is HomeIntent.SelectTab -> _state.update { it.copy(selectedTab = intent.tab) }
             is HomeIntent.OnChartDrag -> _state.update { it.copy(draggedIndex = intent.index) }
             is HomeIntent.OpenNewsArticle -> openUrl(intent.url)
@@ -114,6 +115,12 @@ class HomeViewModel(
     private fun navigateToDetail(ticker: String) {
         viewModelScope.launch {
             _effect.emit(HomeEffect.NavigateToDetail(ticker))
+        }
+    }
+
+    private fun navigateToSectorStocks(sectorKey: String) {
+        viewModelScope.launch {
+            _effect.emit(HomeEffect.NavigateToSectorStocks(sectorKey))
         }
     }
 

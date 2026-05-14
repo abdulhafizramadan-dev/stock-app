@@ -199,10 +199,6 @@ private fun PriceHeaderSection(
     val displayChangePercent = if (baselineClose != null && baselineClose != 0.0)
         (displayChange / baselineClose) * 100.0 else 0.0
 
-    val isPositive = displayChangePercent >= 0
-    val changeColor = if (isPositive) BullishGreen else BearishRed
-    val sign = if (isPositive) "+" else ""
-
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
         Text(
             text = detail.name,
@@ -221,14 +217,7 @@ private fun PriceHeaderSection(
             )
         }
         Spacer(modifier = Modifier.height(4.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = "$sign${"%.0f".format(displayChange)}",
-                color = changeColor,
-                fontSize = 14.sp,
-            )
-            PriceChip(changePercent = displayChangePercent)
-        }
+        PriceChip(changePercent = displayChangePercent, changeValue = displayChange)
     }
 }
 
@@ -243,7 +232,7 @@ private fun ChartSection(
                 data = state.history,
                 xSelector = { it.date },
                 ySelector = { it.close },
-                baselineValue = state.previousClose ?: state.history.firstOrNull()?.close,
+                baselineValue = state.history.firstOrNull()?.close,
                 showYAxisLabels = true,
                 onDragIndexChange = { onIntent(DetailIntent.OnChartDrag(it)) },
                 modifier = Modifier.fillMaxWidth(),
