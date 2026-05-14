@@ -2,6 +2,7 @@ package com.ahr.stock.presentation.screen.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ahr.stock.domain.model.ChartPeriod
 import com.ahr.stock.domain.usecase.index.GetIndexHistoryUseCase
 import com.ahr.stock.domain.usecase.news.GetHighlightedNewsUseCase
 import com.ahr.stock.domain.usecase.sector.GetSectorsSummaryUseCase
@@ -47,6 +48,10 @@ class HomeViewModel(
             is HomeIntent.SelectSector -> navigateToSectorStocks(intent.sectorKey)
             is HomeIntent.SelectTab -> _state.update { it.copy(selectedTab = intent.tab) }
             is HomeIntent.OnChartDrag -> _state.update { it.copy(draggedIndex = intent.index) }
+            is HomeIntent.ChangeIndexPeriod -> {
+                _state.update { it.copy(selectedIndexPeriod = intent.period, draggedIndex = null) }
+                loadIndexHistory(intent.period)
+            }
             is HomeIntent.OpenNewsArticle -> openUrl(intent.url)
         }
     }
@@ -63,9 +68,7 @@ class HomeViewModel(
             val topValuesDeferred = async { getTopValues(GetTopValuesUseCase.Params(limit = 5)) }
             val topVolumesDeferred = async { getTopVolumes(GetTopVolumesUseCase.Params(limit = 5)) }
             val indexDeferred = async {
-                getIndexHistory(
-                    GetIndexHistoryUseCase.Params(symbol = "^JKSE", period = "1d", interval = "1m")
-                )
+                getIndexHistory(indexParams(_state.value.selectedIndexPeriod))
             }
             val newsDeferred = async { getHighlightedNews(GetHighlightedNewsUseCase.Params(count = 5)) }
             val sectorsDeferred = async { getSectorsSummary(GetSectorsSummaryUseCase.Params()) }
@@ -110,6 +113,33 @@ class HomeViewModel(
                 )
             }
         }
+    }
+
+    private fun loadIndexHistory(period: ChartPeriod) {
+        viewModelScope.launch {
+            getIndexHistory(indexParams(period)).fold(
+                onSuccess = { result ->
+                    _state.update {
+                        it.copy(
+                            indexPoints = result.points,
+                            indexPreviousClose = result.previousClose,
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    _effect.emit(HomeEffect.ShowSnackbar(error.message ?: "Failed to load chart"))
+                },
+            )
+        }
+    }
+
+    private fun indexParams(period: ChartPeriod): GetIndexHistoryUseCase.Params {
+        val apiPeriod = if (period == ChartPeriod.ONE_DAY) "2d" else period.period
+        return GetIndexHistoryUseCase.Params(
+            symbol = "^JKSE",
+            period = apiPeriod,
+            interval = period.interval,
+        )
     }
 
     private fun navigateToDetail(ticker: String) {

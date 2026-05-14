@@ -1,5 +1,6 @@
 package com.ahr.stock.presentation.screen.home
 
+import com.ahr.stock.domain.model.ChartPeriod
 import com.ahr.stock.domain.model.IndexPoint
 import com.ahr.stock.domain.model.NewsItem
 import com.ahr.stock.domain.model.SectorSummary
@@ -14,6 +15,7 @@ sealed interface HomeIntent {
     data class SelectSector(val sectorKey: String) : HomeIntent
     data class SelectTab(val tab: MarketTab) : HomeIntent
     data class OnChartDrag(val index: Int?) : HomeIntent
+    data class ChangeIndexPeriod(val period: ChartPeriod) : HomeIntent
     data class OpenNewsArticle(val url: String) : HomeIntent
 }
 
@@ -29,6 +31,7 @@ data class HomeState(
     val news: List<NewsItem> = emptyList(),
     val sectors: List<SectorSummary> = emptyList(),
     val selectedTab: MarketTab = MarketTab.GAINERS,
+    val selectedIndexPeriod: ChartPeriod = ChartPeriod.ONE_DAY,
     val draggedIndex: Int? = null,
     val error: String? = null,
 )

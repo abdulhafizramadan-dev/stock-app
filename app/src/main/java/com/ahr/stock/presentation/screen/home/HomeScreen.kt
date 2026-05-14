@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ahr.stock.presentation.components.FinancialStepChart
 import com.ahr.stock.presentation.components.NewsCard
+import com.ahr.stock.presentation.components.PeriodSelector
 import com.ahr.stock.presentation.components.SectionCard
 import com.ahr.stock.presentation.components.SectorCard
 import com.ahr.stock.presentation.components.StockRow
@@ -263,6 +264,11 @@ private fun IndexChartSection(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+
+        PeriodSelector(
+            selectedPeriod = state.selectedIndexPeriod,
+            onPeriodSelected = { onIntent(HomeIntent.ChangeIndexPeriod(it)) },
+        )
     }
 }
 
