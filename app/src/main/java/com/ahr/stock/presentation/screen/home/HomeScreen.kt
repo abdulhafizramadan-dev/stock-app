@@ -224,7 +224,7 @@ private fun IndexChartSection(
         ?.let { state.indexPoints.getOrNull(it) }
         ?: state.indexPoints.lastOrNull()
 
-    val baseClose = state.indexPreviousClose ?: state.indexPoints.firstOrNull()?.close ?: 0.0
+    val baseClose = state.indexPoints.firstOrNull()?.close ?: 0.0
     val computedChangePercent = if (baseClose != 0.0 && displayPoint != null)
         ((displayPoint.close - baseClose) / baseClose) * 100.0 else 0.0
 

@@ -134,10 +134,9 @@ class HomeViewModel(
     }
 
     private fun indexParams(period: ChartPeriod): GetIndexHistoryUseCase.Params {
-        val apiPeriod = if (period == ChartPeriod.ONE_DAY) "2d" else period.period
         return GetIndexHistoryUseCase.Params(
             symbol = "^JKSE",
-            period = apiPeriod,
+            period = period.period,
             interval = period.interval,
         )
     }

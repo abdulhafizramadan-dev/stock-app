@@ -121,7 +121,7 @@ private fun DetailContent(
     state: DetailState,
     onIntent: (DetailIntent) -> Unit,
 ) {
-    val baselineClose = state.previousClose ?: state.history.firstOrNull()?.close
+    val baselineClose = state.history.firstOrNull()?.close
     val displayPoint = state.draggedIndex?.let { state.history.getOrNull(it) }
         ?: state.history.lastOrNull()
 
