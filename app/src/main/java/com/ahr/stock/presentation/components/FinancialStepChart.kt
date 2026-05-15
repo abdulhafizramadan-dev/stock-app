@@ -3,13 +3,16 @@ package com.ahr.stock.presentation.components
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -39,7 +42,7 @@ import kotlin.math.log10
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
-private val ChartHeight = 180.dp
+internal val ChartHeight = 180.dp
 private val LabelPadding = 20.dp
 private const val DashOn = 10f
 private const val DashOff = 10f
@@ -52,7 +55,7 @@ fun <T> FinancialStepChart(
     xSelector: (T) -> String,
     ySelector: (T) -> Double,
     modifier: Modifier = Modifier,
-    strokeWidth: Dp = 2.dp,
+    strokeWidth: Dp = 1.5.dp,
     backgroundColor: Color = Color.Transparent,
     bullishColor: Color = Color(0xFF00C853),
     bearishColor: Color = Color(0xFFE53935),
@@ -63,7 +66,21 @@ fun <T> FinancialStepChart(
     dragEnabled: Boolean = true,
     onDragIndexChange: ((index: Int?) -> Unit)? = null,
 ) {
-    if (data.size < 2) return
+    if (data.size < 2) {
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(ChartHeight),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "Data not available",
+                fontSize = 14.sp,
+                color = gridColor,
+            )
+        }
+        return
+    }
 
     val xLabels = data.map { xSelector(it) }
     val dataPoints = data.mapIndexed { index, item -> ChartPoint(index.toDouble(), ySelector(item)) }

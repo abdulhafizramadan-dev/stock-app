@@ -3,7 +3,6 @@ package com.ahr.stock.presentation.screen.home
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,6 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -31,6 +32,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,13 +40,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ahr.stock.domain.model.IndexHistory
+import com.ahr.stock.domain.model.SectorSummary
+import com.ahr.stock.domain.model.Stock
 import com.ahr.stock.presentation.components.FinancialStepChart
 import com.ahr.stock.presentation.components.NewsCard
 import com.ahr.stock.presentation.components.PeriodSelector
 import com.ahr.stock.presentation.components.SectionCard
 import com.ahr.stock.presentation.components.SectorCard
 import com.ahr.stock.presentation.components.StockRow
-import com.ahr.stock.domain.model.SectorSummary
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,9 +81,7 @@ fun HomeScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = {
-                    Text(text = "Market", fontWeight = FontWeight.Bold)
-                },
+                title = { Text(text = "Market", fontWeight = FontWeight.Bold) },
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -91,15 +93,7 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            when {
-                state.isLoading -> LoadingContent()
-                state.error != null && state.gainers.isEmpty() -> ErrorContent(
-                    message = state.error!!,
-                    onRetry = { viewModel.onIntent(HomeIntent.LoadMarket) },
-                )
-
-                else -> MarketContent(state = state, onIntent = viewModel::onIntent)
-            }
+            MarketContent(state = state, onIntent = viewModel::onIntent)
         }
     }
 }
@@ -110,12 +104,6 @@ private fun MarketContent(
     onIntent: (HomeIntent) -> Unit,
 ) {
     val tabs = MarketTab.entries
-    val stocks = when (state.selectedTab) {
-        MarketTab.GAINERS -> state.gainers
-        MarketTab.LOSERS -> state.losers
-        MarketTab.TOP_VALUES -> state.topValues
-        MarketTab.TOP_VOLUMES -> state.topVolumes
-    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -128,35 +116,58 @@ private fun MarketContent(
                     .padding(horizontal = 16.dp)
                     .padding(top = 12.dp),
             ) {
-                IndexChartSection(state = state, onIntent = onIntent)
+                IndexChartSection(
+                    indexHistory = state.indexHistory,
+                    draggedIndex = state.draggedIndex,
+                    selectedIndexPeriod = state.selectedIndexPeriod,
+                    onIntent = onIntent,
+                )
             }
         }
 
         item {
             SectionCard(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Text(
-                    text = "TOP MOVERS",
+                    text = "MOVERS",
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     letterSpacing = 1.sp,
                     modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp),
                 )
+                val pagerState = rememberPagerState(
+                    initialPage = tabs.indexOf(state.selectedTab),
+                    pageCount = { tabs.size },
+                )
+
+                LaunchedEffect(pagerState) {
+                    snapshotFlow { pagerState.currentPage }.collect { page ->
+                        onIntent(HomeIntent.SelectTab(tabs[page]))
+                    }
+                }
+
+                LaunchedEffect(state.selectedTab) {
+                    val targetPage = tabs.indexOf(state.selectedTab)
+                    if (pagerState.currentPage != targetPage) {
+                        pagerState.animateScrollToPage(targetPage)
+                    }
+                }
+
                 ScrollableTabRow(
-                    selectedTabIndex = tabs.indexOf(state.selectedTab),
+                    selectedTabIndex = pagerState.currentPage,
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                     edgePadding = 0.dp,
                     divider = {},
                 ) {
-                    tabs.forEach { tab ->
+                    tabs.forEachIndexed { index, tab ->
                         Tab(
-                            selected = state.selectedTab == tab,
+                            selected = pagerState.currentPage == index,
                             onClick = { onIntent(HomeIntent.SelectTab(tab)) },
                             text = {
                                 Text(
                                     text = when (tab) {
-                                        MarketTab.GAINERS -> "Gainers"
-                                        MarketTab.LOSERS -> "Losers"
+                                        MarketTab.GAINERS -> "Top Gainers"
+                                        MarketTab.LOSERS -> "Top Losers"
                                         MarketTab.TOP_VALUES -> "Top Values"
                                         MarketTab.TOP_VOLUMES -> "Top Volumes"
                                     },
@@ -166,49 +177,81 @@ private fun MarketContent(
                     }
                 }
 
-                stocks.forEachIndexed { index, stock ->
-                    StockRow(
-                        stock = stock,
-                        onClick = { onIntent(HomeIntent.SelectStock(it)) },
-                    )
-                    if (index < stocks.lastIndex) {
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                HorizontalPager(state = pagerState) { page ->
+                    val section = when (tabs[page]) {
+                        MarketTab.GAINERS -> state.gainersSection
+                        MarketTab.LOSERS -> state.losersSection
+                        MarketTab.TOP_VALUES -> state.topValuesSection
+                        MarketTab.TOP_VOLUMES -> state.topVolumesSection
+                    }
+                    when (section) {
+                        is SectionState.Idle -> Unit
+                        is SectionState.Loading -> StockListShimmer()
+                        is SectionState.Success -> StockList(
+                            stocks = section.data,
+                            onStockClick = { onIntent(HomeIntent.SelectStock(it)) },
+                        )
+                        is SectionState.Error -> SectionError(
+                            message = section.message,
+                            onRetry = { onIntent(HomeIntent.SelectTab(tabs[page])) },
+                        )
                     }
                 }
             }
         }
 
-        if (state.sectors.isNotEmpty()) {
-            item {
-                SectorsSummarySection(
-                    sectors = state.sectors,
-                    onSectorClick = { sector ->
-                        onIntent(HomeIntent.SelectSector(sector.key))
-                    },
-                    modifier = Modifier.padding(horizontal = 16.dp),
+        item {
+            SectionCard(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(
+                    text = "SECTORS",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 )
+                when (val section = state.sectorsSection) {
+                    is SectionState.Loading -> SectorGridShimmer()
+                    is SectionState.Success -> SectorGrid(
+                        sectors = section.data,
+                        onSectorClick = { onIntent(HomeIntent.SelectSector(it.key)) },
+                    )
+                    is SectionState.Error -> SectionError(
+                        message = section.message,
+                        onRetry = { onIntent(HomeIntent.LoadMarket) },
+                    )
+                    else -> Unit
+                }
             }
         }
 
-        if (state.news.isNotEmpty()) {
-            item {
-                SectionCard(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    Text(
-                        text = "MARKET NEWS",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        letterSpacing = 1.sp,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    )
-                    state.news.forEach {news ->
-                        NewsCard(
-                            newsItem = news,
-                            onClick = { onIntent(HomeIntent.OpenNewsArticle(it)) },
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        )
+        item {
+            SectionCard(modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(
+                    text = "MARKET NEWS",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                )
+                when (val section = state.newsSection) {
+                    is SectionState.Loading -> repeat(3) { NewsCardShimmer() }
+                    is SectionState.Success -> {
+                        section.data.forEach { news ->
+                            NewsCard(
+                                newsItem = news,
+                                onClick = { onIntent(HomeIntent.OpenNewsArticle(it)) },
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    is SectionState.Error -> SectionError(
+                        message = section.message,
+                        onRetry = { onIntent(HomeIntent.LoadMarket) },
+                    )
+                    else -> Unit
                 }
             }
         }
@@ -217,95 +260,91 @@ private fun MarketContent(
 
 @Composable
 private fun IndexChartSection(
-    state: HomeState,
+    indexHistory: IndexHistory,
+    draggedIndex: Int?,
+    selectedIndexPeriod: com.ahr.stock.domain.model.ChartPeriod,
     onIntent: (HomeIntent) -> Unit,
 ) {
-    val displayPoint = state.draggedIndex
-        ?.let { state.indexPoints.getOrNull(it) }
-        ?: state.indexPoints.lastOrNull()
+    val displayPoint = draggedIndex
+        ?.let { indexHistory.points.getOrNull(it) }
+        ?: indexHistory.points.lastOrNull()
 
-    val baseClose = state.indexPoints.firstOrNull()?.close ?: 0.0
+    val baseClose = indexHistory.points.firstOrNull()?.close ?: 0.0
     val computedChangePercent = if (baseClose != 0.0 && displayPoint != null)
         ((displayPoint.close - baseClose) / baseClose) * 100.0 else 0.0
 
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(
-                text = "IHSG",
-                fontWeight = FontWeight.Bold,
-                fontSize = 24.sp,
-            )
-
+            Text(text = "IHSG", fontWeight = FontWeight.Bold, fontSize = 24.sp)
             Spacer(modifier = Modifier.width(6.dp))
-
             if (displayPoint != null) {
                 val sign = if (computedChangePercent >= 0) "+" else ""
                 Text(
                     text = "${"%.2f".format(displayPoint.close)}  $sign${"%.2f".format(computedChangePercent)}%",
                     fontSize = 14.sp,
-                    color = if (computedChangePercent >= 0)
-                        Color(0xFF00C853)
-                    else
-                        Color(0xFFE53935),
+                    color = if (computedChangePercent >= 0) Color(0xFF00C853) else Color(0xFFE53935),
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (state.indexPoints.size >= 2) {
-            FinancialStepChart(
-                data = state.indexPoints,
-                xSelector = { it.datetime },
-                ySelector = { it.close },
-                baselineValue = state.indexPoints.firstOrNull()?.close,
-                showYAxisLabels = true,
-                onDragIndexChange = { onIntent(HomeIntent.OnChartDrag(it)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
+        FinancialStepChart(
+            data = indexHistory.points,
+            xSelector = { it.datetime },
+            ySelector = { it.close },
+            baselineValue = indexHistory.points.firstOrNull()?.close,
+            showYAxisLabels = true,
+            onDragIndexChange = { onIntent(HomeIntent.OnChartDrag(it)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
 
         PeriodSelector(
-            selectedPeriod = state.selectedIndexPeriod,
+            selectedPeriod = selectedIndexPeriod,
             onPeriodSelected = { onIntent(HomeIntent.ChangeIndexPeriod(it)) },
         )
     }
 }
 
 @Composable
-private fun SectorsSummarySection(
-    sectors: List<SectorSummary>,
-    onSectorClick: (SectorSummary) -> Unit,
+private fun StockList(
+    stocks: List<Stock>,
+    onStockClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        stocks.forEachIndexed { index, stock ->
+            StockRow(stock = stock, onClick = onStockClick)
+            if (index < stocks.lastIndex) {
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectorGrid(
+    sectors: List<SectorSummary>,
+    onSectorClick: (SectorSummary) -> Unit,
+) {
     val columns = 3
-    SectionCard(modifier = modifier) {
-        Text(
-            text = "SECTORS",
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-        )
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp)
-                .padding(bottom = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            sectors.chunked(columns).forEach { rowItems ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    rowItems.forEach { sector ->
-                        SectorCard(sector = sector, onClick = onSectorClick, modifier = Modifier.weight(1f))
-                    }
-                    if (rowItems.size < columns) {
-                        Spacer(modifier = Modifier.weight((columns - rowItems.size).toFloat()))
-                    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp)
+            .padding(bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        sectors.chunked(columns).forEach { rowItems ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                rowItems.forEach { sector ->
+                    SectorCard(sector = sector, onClick = onSectorClick, modifier = Modifier.weight(1f))
+                }
+                if (rowItems.size < columns) {
+                    Spacer(modifier = Modifier.weight((columns - rowItems.size).toFloat()))
                 }
             }
         }
@@ -313,23 +352,18 @@ private fun SectorsSummarySection(
 }
 
 @Composable
-private fun LoadingContent() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        androidx.compose.material3.CircularProgressIndicator()
-    }
-}
-
-@Composable
-private fun ErrorContent(message: String, onRetry: () -> Unit) {
+private fun SectionError(
+    message: String,
+    onRetry: () -> Unit,
+) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
+            .fillMaxWidth()
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(text = message, color = MaterialTheme.colorScheme.error)
-        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = message, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
         Button(onClick = onRetry) {
             Text(text = "Retry")
         }

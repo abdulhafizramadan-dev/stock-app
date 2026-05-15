@@ -1,7 +1,7 @@
 package com.ahr.stock.presentation.screen.home
 
 import com.ahr.stock.domain.model.ChartPeriod
-import com.ahr.stock.domain.model.IndexPoint
+import com.ahr.stock.domain.model.IndexHistory
 import com.ahr.stock.domain.model.NewsItem
 import com.ahr.stock.domain.model.SectorSummary
 import com.ahr.stock.domain.model.Stock
@@ -20,20 +20,17 @@ sealed interface HomeIntent {
 }
 
 data class HomeState(
-    val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
-    val gainers: List<Stock> = emptyList(),
-    val losers: List<Stock> = emptyList(),
-    val topValues: List<Stock> = emptyList(),
-    val topVolumes: List<Stock> = emptyList(),
-    val indexPoints: List<IndexPoint> = emptyList(),
-    val indexPreviousClose: Double? = null,
-    val news: List<NewsItem> = emptyList(),
-    val sectors: List<SectorSummary> = emptyList(),
+    val indexHistory: IndexHistory = IndexHistory(points = emptyList(), previousClose = null),
+    val gainersSection: SectionState<List<Stock>> = SectionState.Loading,
+    val losersSection: SectionState<List<Stock>> = SectionState.Idle,
+    val topValuesSection: SectionState<List<Stock>> = SectionState.Idle,
+    val topVolumesSection: SectionState<List<Stock>> = SectionState.Idle,
+    val newsSection: SectionState<List<NewsItem>> = SectionState.Loading,
+    val sectorsSection: SectionState<List<SectorSummary>> = SectionState.Loading,
     val selectedTab: MarketTab = MarketTab.GAINERS,
     val selectedIndexPeriod: ChartPeriod = ChartPeriod.ONE_DAY,
     val draggedIndex: Int? = null,
-    val error: String? = null,
 )
 
 sealed interface HomeEffect {

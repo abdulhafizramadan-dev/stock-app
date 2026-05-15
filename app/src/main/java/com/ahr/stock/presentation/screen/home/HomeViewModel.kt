@@ -10,7 +10,6 @@ import com.ahr.stock.domain.usecase.stock.GetGainersUseCase
 import com.ahr.stock.domain.usecase.stock.GetLosersUseCase
 import com.ahr.stock.domain.usecase.stock.GetTopValuesUseCase
 import com.ahr.stock.domain.usecase.stock.GetTopVolumesUseCase
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -18,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 
 class HomeViewModel(
@@ -46,11 +46,19 @@ class HomeViewModel(
             is HomeIntent.Refresh -> loadMarket(isRefresh = true)
             is HomeIntent.SelectStock -> navigateToDetail(intent.ticker)
             is HomeIntent.SelectSector -> navigateToSectorStocks(intent.sectorKey)
-            is HomeIntent.SelectTab -> _state.update { it.copy(selectedTab = intent.tab) }
+            is HomeIntent.SelectTab -> {
+                _state.update { it.copy(selectedTab = intent.tab) }
+                loadTabIfNeeded(intent.tab)
+            }
             is HomeIntent.OnChartDrag -> _state.update { it.copy(draggedIndex = intent.index) }
             is HomeIntent.ChangeIndexPeriod -> {
-                _state.update { it.copy(selectedIndexPeriod = intent.period, draggedIndex = null) }
-                loadIndexHistory(intent.period)
+                _state.update {
+                    it.copy(
+                        selectedIndexPeriod = intent.period,
+                        draggedIndex = null,
+                    )
+                }
+                viewModelScope.launch { loadIndex(intent.period) }
             }
             is HomeIntent.OpenNewsArticle -> openUrl(intent.url)
         }
@@ -59,86 +67,146 @@ class HomeViewModel(
     private fun loadMarket(isRefresh: Boolean) {
         viewModelScope.launch {
             _state.update {
-                if (isRefresh) it.copy(isRefreshing = true, error = null)
-                else it.copy(isLoading = true, error = null)
-            }
-
-            val gainersDeferred = async { getGainers(GetGainersUseCase.Params(limit = 5)) }
-            val losersDeferred = async { getLosers(GetLosersUseCase.Params(limit = 5)) }
-            val topValuesDeferred = async { getTopValues(GetTopValuesUseCase.Params(limit = 5)) }
-            val topVolumesDeferred = async { getTopVolumes(GetTopVolumesUseCase.Params(limit = 5)) }
-            val indexDeferred = async {
-                getIndexHistory(indexParams(_state.value.selectedIndexPeriod))
-            }
-            val newsDeferred = async { getHighlightedNews(GetHighlightedNewsUseCase.Params(count = 5)) }
-            val sectorsDeferred = async { getSectorsSummary(GetSectorsSummaryUseCase.Params()) }
-
-            val gainersResult = gainersDeferred.await()
-            val losersResult = losersDeferred.await()
-            val topValuesResult = topValuesDeferred.await()
-            val topVolumesResult = topVolumesDeferred.await()
-            val indexResult = indexDeferred.await()
-            val newsResult = newsDeferred.await()
-            val sectorsResult = sectorsDeferred.await()
-
-            val error = gainersResult.exceptionOrNull()
-                ?: losersResult.exceptionOrNull()
-                ?: indexResult.exceptionOrNull()
-
-            if (error != null) {
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        isRefreshing = false,
-                        error = error.message ?: "Something went wrong",
-                    )
-                }
-                _effect.emit(HomeEffect.ShowSnackbar(error.message ?: "Something went wrong"))
-                return@launch
-            }
-
-            _state.update {
                 it.copy(
-                    isLoading = false,
-                    isRefreshing = false,
-                    gainers = gainersResult.getOrDefault(emptyList()),
-                    losers = losersResult.getOrDefault(emptyList()),
-                    topValues = topValuesResult.getOrDefault(emptyList()),
-                    topVolumes = topVolumesResult.getOrDefault(emptyList()),
-                    indexPoints = indexResult.getOrNull()?.points ?: emptyList(),
-                    indexPreviousClose = indexResult.getOrNull()?.previousClose,
-                    news = newsResult.getOrDefault(emptyList()),
-                    sectors = sectorsResult.getOrDefault(emptyList()),
-                    error = null,
+                    isRefreshing = isRefresh,
+                    gainersSection = SectionState.Loading,
+                    newsSection = SectionState.Loading,
+                    sectorsSection = SectionState.Loading,
+                    losersSection = SectionState.Idle,
+                    topValuesSection = SectionState.Idle,
+                    topVolumesSection = SectionState.Idle,
                 )
             }
-        }
-    }
 
-    private fun loadIndexHistory(period: ChartPeriod) {
-        viewModelScope.launch {
-            getIndexHistory(indexParams(period)).fold(
-                onSuccess = { result ->
-                    _state.update {
-                        it.copy(
-                            indexPoints = result.points,
-                            indexPreviousClose = result.previousClose,
-                        )
-                    }
-                },
-                onFailure = { error ->
-                    _effect.emit(HomeEffect.ShowSnackbar(error.message ?: "Failed to load chart"))
-                },
+            val jobs = listOf(
+                launch { loadIndex(_state.value.selectedIndexPeriod) },
+                launch { loadGainers() },
+                launch { loadNews() },
+                launch { loadSectors() },
             )
+            jobs.joinAll()
+
+            _state.update { it.copy(isRefreshing = false) }
         }
     }
 
-    private fun indexParams(period: ChartPeriod): GetIndexHistoryUseCase.Params {
-        return GetIndexHistoryUseCase.Params(
-            symbol = "^JKSE",
-            period = period.period,
-            interval = period.interval,
+    private suspend fun loadIndex(period: ChartPeriod) {
+        getIndexHistory(
+            GetIndexHistoryUseCase.Params(
+                symbol = "^JKSE",
+                period = period.period,
+                interval = period.interval,
+            )
+        ).fold(
+            onSuccess = { result ->
+                _state.update { it.copy(indexHistory = result) }
+            },
+            onFailure = { error ->
+                _effect.emit(HomeEffect.ShowSnackbar(error.message ?: "Failed to load chart"))
+            },
         )
+    }
+
+    private suspend fun loadGainers() {
+        getGainers(GetGainersUseCase.Params(limit = 5)).fold(
+            onSuccess = { data ->
+                _state.update { it.copy(gainersSection = SectionState.Success(data)) }
+            },
+            onFailure = { error ->
+                _state.update {
+                    it.copy(gainersSection = SectionState.Error(error.message ?: "Failed to load gainers"))
+                }
+            },
+        )
+    }
+
+    private suspend fun loadLosers() {
+        _state.update { it.copy(losersSection = SectionState.Loading) }
+        getLosers(GetLosersUseCase.Params(limit = 5)).fold(
+            onSuccess = { data ->
+                _state.update { it.copy(losersSection = SectionState.Success(data)) }
+            },
+            onFailure = { error ->
+                _state.update {
+                    it.copy(losersSection = SectionState.Error(error.message ?: "Failed to load losers"))
+                }
+            },
+        )
+    }
+
+    private suspend fun loadTopValues() {
+        _state.update { it.copy(topValuesSection = SectionState.Loading) }
+        getTopValues(GetTopValuesUseCase.Params(limit = 5)).fold(
+            onSuccess = { data ->
+                _state.update { it.copy(topValuesSection = SectionState.Success(data)) }
+            },
+            onFailure = { error ->
+                _state.update {
+                    it.copy(topValuesSection = SectionState.Error(error.message ?: "Failed to load top values"))
+                }
+            },
+        )
+    }
+
+    private suspend fun loadTopVolumes() {
+        _state.update { it.copy(topVolumesSection = SectionState.Loading) }
+        getTopVolumes(GetTopVolumesUseCase.Params(limit = 5)).fold(
+            onSuccess = { data ->
+                _state.update { it.copy(topVolumesSection = SectionState.Success(data)) }
+            },
+            onFailure = { error ->
+                _state.update {
+                    it.copy(topVolumesSection = SectionState.Error(error.message ?: "Failed to load top volumes"))
+                }
+            },
+        )
+    }
+
+    private suspend fun loadNews() {
+        getHighlightedNews(GetHighlightedNewsUseCase.Params(count = 5)).fold(
+            onSuccess = { data ->
+                _state.update { it.copy(newsSection = SectionState.Success(data)) }
+            },
+            onFailure = { error ->
+                _state.update {
+                    it.copy(newsSection = SectionState.Error(error.message ?: "Failed to load news"))
+                }
+            },
+        )
+    }
+
+    private suspend fun loadSectors() {
+        getSectorsSummary(GetSectorsSummaryUseCase.Params()).fold(
+            onSuccess = { data ->
+                _state.update { it.copy(sectorsSection = SectionState.Success(data)) }
+            },
+            onFailure = { error ->
+                _state.update {
+                    it.copy(sectorsSection = SectionState.Error(error.message ?: "Failed to load sectors"))
+                }
+            },
+        )
+    }
+
+    private fun loadTabIfNeeded(tab: MarketTab) {
+        when (tab) {
+            MarketTab.LOSERS -> {
+                if (_state.value.losersSection is SectionState.Idle) {
+                    viewModelScope.launch { loadLosers() }
+                }
+            }
+            MarketTab.TOP_VALUES -> {
+                if (_state.value.topValuesSection is SectionState.Idle) {
+                    viewModelScope.launch { loadTopValues() }
+                }
+            }
+            MarketTab.TOP_VOLUMES -> {
+                if (_state.value.topVolumesSection is SectionState.Idle) {
+                    viewModelScope.launch { loadTopVolumes() }
+                }
+            }
+            MarketTab.GAINERS -> Unit
+        }
     }
 
     private fun navigateToDetail(ticker: String) {
