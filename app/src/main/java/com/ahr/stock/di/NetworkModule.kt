@@ -1,8 +1,9 @@
 package com.ahr.stock.di
 
 import com.ahr.stock.BuildConfig
+import com.chuckerteam.chucker.api.ChuckerInterceptor
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.android.Android
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
@@ -10,6 +11,7 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 val networkModule = module {
@@ -20,7 +22,10 @@ val networkModule = module {
         }
     }
     single {
-        HttpClient(Android) {
+        HttpClient(OkHttp) {
+            engine {
+                addInterceptor(ChuckerInterceptor.Builder(androidContext()).build())
+            }
             install(ContentNegotiation) {
                 json(get())
             }
@@ -37,4 +42,3 @@ val networkModule = module {
         }
     }
 }
-
